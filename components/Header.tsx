@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ViewType, User, Notification, NavigationAction, Profile } from '../types';
-import { LightbulbIcon, ClockIcon, CheckSquareIcon, MessageSquareIcon, DollarSignIcon, UsersIcon, LogOutIcon, MoonIcon, SunIcon } from '../constants';
+import { LightbulbIcon, ClockIcon, CheckSquareIcon, MessageSquareIcon, DollarSignIcon, UsersIcon, LogOutIcon } from '../constants';
 
 interface HeaderProps {
     pageTitle: ViewType;
@@ -61,20 +61,11 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
     const notifRef = useRef<HTMLDivElement>(null);
     const profileRef = useRef<HTMLDivElement>(null);
 
-    const [theme, setTheme] = useState(() => localStorage.getItem('theme') || 'light');
-
+    // Force light mode for stability
     useEffect(() => {
-        if (theme === 'dark') {
-            document.documentElement.classList.add('dark');
-        } else {
-            document.documentElement.classList.remove('dark');
-        }
-        localStorage.setItem('theme', theme);
-    }, [theme]);
-
-    const toggleTheme = () => {
-        setTheme(prevTheme => (prevTheme === 'light' ? 'dark' : 'light'));
-    };
+        document.documentElement.classList.remove('dark');
+        try { localStorage.setItem('theme', 'light'); } catch {}
+    }, []);
 
     const unreadCount = notifications.filter(n => !n.isRead).length;
 
@@ -185,14 +176,7 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                         <SearchIcon className="w-5 h-5" />
                     </button>
                     
-                    {/* Theme Toggle Button */}
-                    <button
-                        onClick={toggleTheme}
-                        className="p-2 sm:p-2.5 text-brand-text-secondary hover:text-brand-text-light active:text-brand-text-light rounded-xl hover:bg-brand-input active:bg-brand-input/80 min-w-[44px] min-h-[44px] flex items-center justify-center transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand-accent/20"
-                        aria-label={`Ganti ke mode ${theme === 'light' ? 'gelap' : 'terang'}`}
-                    >
-                        {theme === 'light' ? <MoonIcon className="w-5 h-5" /> : <SunIcon className="w-5 h-5" />}
-                    </button>
+                    {/* Theme toggle removed: app is locked to light mode */}
 
                     {/* Enhanced Notification Button */}
                     <div className="relative" ref={notifRef}>

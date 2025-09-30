@@ -77,7 +77,7 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
         }
     }, [leads]);
 
-    const template = userProfile.publicPageConfig.template || 'classic';
+    const template = userProfile.publicPageConfig?.template || 'classic';
 
     const formattedTerms = useMemo(() => {
         if (!userProfile.termsAndConditions) return null;
@@ -386,7 +386,6 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                 <div className="w-full max-w-lg p-8 text-center bg-public-surface rounded-2xl shadow-lg border border-public-border">
                     <h1 className="text-2xl font-bold text-gradient">Terima Kasih!</h1>
                     <p className="mt-4 text-public-text-primary">Formulir pemesanan Anda telah berhasil kami terima. Tim kami akan segera menghubungi Anda untuk konfirmasi lebih lanjut.</p>
-                    <a href="#" className="mt-6 button-primary inline-block">Kembali ke Beranda</a>
                 </div>
             </div>
         );
@@ -416,7 +415,7 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                         <p className="text-sm text-public-text-secondary mt-2">Formulir Pemesanan Layanan</p>
                     </div>
 
-                    <form className="space-y-4" onSubmit={handleSubmit}>
+                    <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-2">
                              <div className="space-y-4">
                                 <h4 className="text-base font-semibold text-gradient border-b border-public-border pb-2">Informasi Klien & Acara</h4>

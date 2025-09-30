@@ -235,7 +235,7 @@ const ProjectStatusManager: React.FC<{
             </div>
             
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={modalMode === 'add' ? 'Tambah Status Baru' : `Edit Status: ${selectedStatus?.name}`}>
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 form-compact form-compact--ios-scale">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                         <div className="input-group md:col-span-2"><input type="text" id="name" name="name" value={form.name} onChange={handleFormChange} className="input-field" required placeholder=" "/><label htmlFor="name" className="input-label">Nama Status</label></div>
                         <div className="input-group"><input type="color" id="color" name="color" value={form.color} onChange={handleFormChange} className="input-field !p-1 h-12"/><label htmlFor="color" className="input-label">Warna</label></div>
@@ -834,7 +834,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
         switch(activeTab) {
             case 'profile':
                  return (
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} className="form-compact form-compact--ios-scale">
                         <div className="space-y-6">
                             <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3">Informasi Publik</h3>
                             <div className="space-y-4 max-w-2xl mx-auto">
@@ -924,7 +924,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                 );
             case 'publicPage':
                 return (
-                    <form onSubmit={handleSubmit}>
+                    <form onSubmit={handleSubmit} className="form-compact form-compact--ios-scale">
                         <div className="space-y-6">
                             <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3">Desain Halaman Paket Publik</h3>
                             
@@ -1119,7 +1119,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
             </div>
     
             <Modal isOpen={isUserModalOpen} onClose={handleCloseUserModal} title={userModalMode === 'add' ? 'Tambah Pengguna Baru' : 'Edit Pengguna'}>
-                <form onSubmit={handleUserFormSubmit} className="space-y-4">
+                <form onSubmit={handleUserFormSubmit} className="space-y-4 form-compact form-compact--ios-scale">
                     {userFormError && <p className="text-red-500 text-sm bg-red-500/10 p-3 rounded-md">{userFormError}</p>}
                     <div className="input-group"><input type="text" name="fullName" value={userForm.fullName} onChange={handleUserFormChange} className="input-field" placeholder=" " required /><label className="input-label">Nama Lengkap</label></div>
                     <div className="input-group"><input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} className="input-field" placeholder=" " required /><label className="input-label">Email</label></div>

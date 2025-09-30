@@ -105,7 +105,7 @@ const PublicLeadForm: React.FC<PublicLeadFormProps> = ({ setLeads, userProfile, 
                         </div>
                     </div>
 
-                    <form className="space-y-4" onSubmit={handleSubmit}>
+                    <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
                         <div className="input-group">
                             <input type="text" id="name" name="name" value={formState.name} onChange={handleFormChange} className="input-field" placeholder=" " required />
                             <label htmlFor="name" className="input-label">Nama Lengkap</label>

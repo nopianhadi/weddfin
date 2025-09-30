@@ -84,7 +84,7 @@ const SuggestionForm: React.FC<SuggestionFormProps> = ({ setLeads }) => {
                     <p className="text-sm text-brand-text-secondary">Punya ide atau pertanyaan untuk Vena Pictures? Kami ingin mendengarnya dari Anda!</p>
                 </div>
 
-                <form className="space-y-4" onSubmit={handleSubmit}>
+                <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
                     <div className="input-group">
                         <input
                             id="name"

@@ -25,7 +25,6 @@ const Contracts = lazy(() => import('./components/Contracts'));
 const ClientPortal = lazy(() => import('./components/ClientPortal'));
 const FreelancerPortal = lazy(() => import('./components/FreelancerPortal'));
 const SocialPlanner = lazy(() => import('./components/SocialPlanner').then(m => ({ default: m.SocialPlanner })));
-const Marketing = lazy(() => import('./components/Marketing'));
 const PromoCodes = lazy(() => import('./components/PromoCodes'));
 const SOPManagement = lazy(() => import('./components/SOP'));
 const PublicBookingForm = lazy(() => import('./components/PublicBookingForm'));
@@ -102,7 +101,7 @@ const AccessDenied: React.FC<{onBackToDashboard: () => void}> = ({ onBackToDashb
         <div className="
             w-16 h-16 sm:w-20 sm:h-20
             rounded-full 
-            bg-red-100 dark:bg-red-900/20
+            bg-red-100
             flex items-center justify-center
             mb-4 sm:mb-6
         ">
@@ -113,7 +112,7 @@ const AccessDenied: React.FC<{onBackToDashboard: () => void}> = ({ onBackToDashb
         <h2 className="
             text-xl sm:text-2xl 
             font-bold 
-            text-red-600 dark:text-red-400 
+            text-red-600 
             mb-2 sm:mb-3
         ">
             Akses Ditolak
@@ -147,7 +146,6 @@ const BottomNavBar: React.FC<{ activeView: ViewType; handleNavigation: (view: Vi
             case ViewType.FINANCE: import('./components/Finance'); break;
             case ViewType.CALENDAR: import('./components/CalendarView'); break;
             case ViewType.SOCIAL_MEDIA_PLANNER: import('./components/SocialPlanner'); break;
-            case ViewType.MARKETING: import('./components/Marketing'); break;
             case ViewType.PACKAGES: import('./components/Packages'); break;
             case ViewType.ASSETS: import('./components/Assets'); break;
             case ViewType.CONTRACTS: import('./components/Contracts'); break;
@@ -260,6 +258,12 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [route, setRoute] = useState(window.location.hash || '#/home');
   const [isSearchOpen, setIsSearchOpen] = useState(false);
+
+  // Force light mode globally on app load
+  useEffect(() => {
+    document.documentElement.classList.remove('dark');
+    try { window.localStorage.setItem('theme', 'light'); } catch {}
+  }, []);
 
   // --- State Initialization with Persistence ---
   const [users, setUsers] = useState<User[]>([]);
@@ -1254,7 +1258,7 @@ const App: React.FC = () => {
   };
 
   const handleNavigation = (view: ViewType, action?: NavigationAction, notificationId?: string) => {
-    const pathMap: { [key in ViewType]: string } = {
+    const pathMap: Partial<Record<ViewType, string>> = {
       [ViewType.HOMEPAGE]: 'home',
       [ViewType.DASHBOARD]: 'dashboard',
       [ViewType.PROSPEK]: 'prospek',
@@ -1263,11 +1267,10 @@ const App: React.FC = () => {
       [ViewType.PROJECTS]: 'projects',
       [ViewType.TEAM]: 'team',
       [ViewType.FINANCE]: 'finance',
-      [ViewType.CALENDAR]: 'calendar',
-      [ViewType.SOCIAL_MEDIA_PLANNER]: 'social-media-planner',
-      [ViewType.MARKETING]: 'marketing',
-      [ViewType.PACKAGES]: 'packages',
-      [ViewType.ASSETS]: 'assets',
+    [ViewType.CALENDAR]: 'calendar',
+    [ViewType.SOCIAL_MEDIA_PLANNER]: 'social-media-planner',
+    [ViewType.PACKAGES]: 'packages',
+    [ViewType.ASSETS]: 'assets',
       [ViewType.CONTRACTS]: 'contracts',
       [ViewType.PROMO_CODES]: 'promo-codes',
       [ViewType.SOP]: 'sop',
@@ -1588,14 +1591,6 @@ const App: React.FC = () => {
         />;
       case ViewType.SOCIAL_MEDIA_PLANNER:
         return <SocialPlanner posts={socialMediaPosts} setPosts={setSocialMediaPosts} projects={projects} showNotification={showNotification} />;
-      case ViewType.MARKETING:
-        return <Marketing 
-            packages={packages} 
-            profile={profile} 
-            showNotification={showNotification} 
-            leads={leads}
-            clients={clients}
-        />;
       case ViewType.PROMO_CODES:
         return <PromoCodes promoCodes={promoCodes} setPromoCodes={setPromoCodes} projects={projects} showNotification={showNotification} />;
       default:
@@ -1797,7 +1792,7 @@ const App: React.FC = () => {
                                 <ErrorBoundary fallback={
                   <div className="flex items-center justify-center h-64">
                     <div className="text-center">
-                      <div className="text-red-500 text-4xl mb-2">⚠️</div>
+                      <div className="text-red-500 text-4xl mb-2">âš ï¸</div>
                       <p className="text-brand-text-secondary">Gagal memuat komponen. Silakan coba lagi.</p>
                       <button 
                         onClick={() => window.location.reload()} 
@@ -1808,7 +1803,7 @@ const App: React.FC = () => {
                     </div>
                   </div>
                                 }>
-                                                          <Suspense fallback={<div className="py-12 text-center text-brand-text-secondary">Memuat komponen…</div>}>
+                                                          <Suspense fallback={<div className="py-12 text-center text-brand-text-secondary">Memuat komponenâ€¦</div>}>
                                                             {renderView()}
                                                         </Suspense>
                                 </ErrorBoundary>

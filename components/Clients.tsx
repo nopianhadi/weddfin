@@ -238,7 +238,7 @@ const ClientForm: React.FC<ClientFormProps> = ({ formData, handleFormChange, han
     }, [formData.packageId, formData.selectedAddOnIds, formData.dp, formData.promoCodeId, packages, addOns, promoCodes]);
     
     return (
-        <form onSubmit={handleFormSubmit}>
+        <form onSubmit={handleFormSubmit} className="form-compact form-compact--ios-scale">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-2">
                 {/* Left Column: Client & Project Info */}
                 <div className="space-y-4">

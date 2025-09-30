@@ -606,7 +606,7 @@ const Contracts: React.FC<ContractsProps> = ({ contracts, setContracts, clients,
             </Modal>
             
             <Modal isOpen={isFormModalOpen} onClose={handleCloseModal} title={modalMode === 'add' ? 'Buat Kontrak Baru' : 'Edit Kontrak'} size="4xl">
-                <form onSubmit={handleSubmit} className="space-y-4">
+                <form onSubmit={handleSubmit} className="space-y-4 form-compact form-compact--ios-scale">
                     <div className="grid grid-cols-2 gap-4">
                         <div className="input-group">
                             <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="input-field" required>

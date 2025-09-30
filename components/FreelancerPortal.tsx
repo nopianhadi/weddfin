@@ -84,7 +84,7 @@ const FreelancerPortal: React.FC<FreelancerPortalProps> = ({ accessId, teamMembe
         const projectsBeingPaid = teamProjectPayments.filter(p => record.projectPaymentIds.includes(p.id));
     
         return (
-            <div id={`payment-slip-content-${record.id}`} className="printable-content bg-slate-50 font-sans text-slate-800 printable-area avoid-break">
+            <div id={`payment-slip-content-${record.id}`} className="printable-content print-invoice print-portal-document print-slip-compact bg-slate-50 font-sans text-slate-800 printable-area avoid-break">
                 <div className="max-w-4xl mx-auto bg-white p-8 sm:p-12 shadow-lg">
                     <header className="flex justify-between items-start mb-12">
                         <div>
@@ -103,11 +103,11 @@ const FreelancerPortal: React.FC<FreelancerPortalProps> = ({ accessId, teamMembe
                         <div className="bg-slate-50 p-6 rounded-xl"><h3 className="text-xs font-semibold uppercase text-slate-400 mb-2">Dibayarkan Oleh</h3><p className="font-bold text-slate-800">{profile.companyName}</p><p className="text-sm text-slate-600">{profile.bankAccount}</p></div>
                     </section>
     
-                    <section>
+                    <section className="avoid-break">
                         <h3 className="font-semibold text-slate-800 mb-3">Rincian Pembayaran</h3>
-                        <table className="w-full text-left responsive-table">
-                            <thead><tr className="border-b-2 border-slate-200"><th className="p-3 text-sm font-semibold uppercase text-slate-500">Proyek</th><th className="p-3 text-sm font-semibold uppercase text-slate-500">Peran</th><th className="p-3 text-sm font-semibold uppercase text-slate-500 text-right">Fee</th></tr></thead>
-                            <tbody className="divide-y divide-slate-200">
+                        <table className="w-full text-left responsive-table invoice-table">
+                            <thead className="invoice-table-header"><tr className="border-b-2 border-slate-200"><th className="p-3 text-sm font-semibold uppercase text-slate-500">Proyek</th><th className="p-3 text-sm font-semibold uppercase text-slate-500">Peran</th><th className="p-3 text-sm font-semibold uppercase text-slate-500 text-right">Fee</th></tr></thead>
+                            <tbody className="divide-y divide-slate-200 invoice-table-body">
                                 {projectsBeingPaid.map(p => {
                                     const project = projects.find(proj => proj.id === p.projectId);
                                     return (
@@ -122,7 +122,7 @@ const FreelancerPortal: React.FC<FreelancerPortalProps> = ({ accessId, teamMembe
                         </table>
                     </section>
     
-                    <section className="mt-12 avoid-break totals-section">
+                    <section className="mt-12 avoid-break totals-section invoice-totals">
                         <div className="flex flex-col sm:flex-row justify-end">
                             <div className="w-full sm:w-2/5 space-y-2 text-sm">
                                 <div className="flex justify-between font-bold text-xl text-slate-900 bg-slate-100 p-4 rounded-lg">
@@ -296,20 +296,37 @@ const ProjectsTab: React.FC<{projects: Project[], onProjectClick: (p: Project) =
         return arr;
     }, [projects, filter]);
 
-    const FilterButton: React.FC<{ id: typeof filter; label: string; count: number; }> = ({ id, label, count }) => (
-        <button
-            onClick={() => setFilter(id)}
-            aria-pressed={filter === id}
-            className={
-                `px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1 ` +
-                (filter === id
-                    ? 'bg-public-accent text-white border-public-accent shadow-soft'
-                    : 'bg-white text-public-text-secondary border-public-border hover:text-public-text-primary')
-            }
-        >
-            {label} ({count})
-        </button>
-    );
+    const FilterButton: React.FC<{ id: typeof filter; label: string; count: number; }> = ({ id, label, count }) => {
+        const base = 'px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors focus:outline-none focus:ring-2 focus:ring-offset-1';
+        const colorById = {
+            all: {
+                active: 'bg-slate-600 text-white border-slate-600 shadow-soft',
+                inactive: 'bg-slate-100 text-slate-700 border-slate-200 hover:bg-slate-200',
+            },
+            upcoming: {
+                active: 'bg-blue-600 text-white border-blue-600 shadow-soft',
+                inactive: 'bg-blue-50 text-blue-700 border-blue-200 hover:bg-blue-100',
+            },
+            ongoing: {
+                active: 'bg-amber-600 text-white border-amber-600 shadow-soft',
+                inactive: 'bg-amber-50 text-amber-700 border-amber-200 hover:bg-amber-100',
+            },
+            completed: {
+                active: 'bg-green-600 text-white border-green-600 shadow-soft',
+                inactive: 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100',
+            },
+        } as const;
+        const cls = filter === id ? colorById[id].active : colorById[id].inactive;
+        return (
+            <button
+                onClick={() => setFilter(id)}
+                aria-pressed={filter === id}
+                className={`${base} ${cls}`}
+            >
+                {label} ({count})
+            </button>
+        );
+    };
 
     return (
         <div className="space-y-4">

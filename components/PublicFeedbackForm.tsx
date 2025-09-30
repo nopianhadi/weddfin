@@ -80,7 +80,7 @@ const PublicFeedbackForm: React.FC<PublicFeedbackFormProps> = ({ setClientFeedba
                         <p className="text-sm text-brand-text-secondary mt-2">Kami sangat menghargai waktu Anda untuk memBerikan Testimoni.</p>
                     </div>
 
-                    <form className="space-y-4" onSubmit={handleSubmit}>
+                    <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
                         <div className="input-group">
                            <input type="text" id="clientName" name="clientName" value={formState.clientName} onChange={handleFormChange} className="input-field" placeholder=" " required/>
                            <label htmlFor="clientName" className="input-label">Nama Anda</label>

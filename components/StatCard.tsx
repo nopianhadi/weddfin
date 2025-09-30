@@ -115,7 +115,6 @@ const StatCard: React.FC<StatCardProps> = ({
               ${changeColor}
               gap-1
               bg-white/50
-              dark:bg-black/20
               px-2 py-0.5
               rounded-full
               shadow-sm

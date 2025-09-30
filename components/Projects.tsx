@@ -120,7 +120,7 @@ const ProjectForm: React.FC<ProjectFormProps> = ({
             title={mode === 'add' ? 'Tambah Proyek Baru (Operasional)' : `Edit Proyek: ${formData.projectName}`}
             size="4xl"
         >
-            <form onSubmit={onSubmit} className="space-y-6">
+            <form onSubmit={onSubmit} className="space-y-6 form-compact form-compact--ios-scale">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-4 max-h-[70vh] overflow-y-auto pr-2">
                     {/* --- LEFT COLUMN --- */}
                     <div className="space-y-6">

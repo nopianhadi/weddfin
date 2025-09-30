@@ -1,3 +1,99 @@
+/* Text gradient override for black text */
+.text-gradient {
+  color: #000000;
+  background: none;
+  background-clip: initial;
+  -webkit-background-clip: initial;
+  -webkit-text-fill-color: initial;
+}
+
+/* iOS/iPad: visually scale inputs smaller without reducing font-size (avoid auto-zoom) */
+@media (max-width: 1024px) {
+  .ios .form-compact.form-compact--ios-scale input.input-field,
+  .ios .form-compact.form-compact--ios-scale select.input-field,
+  .ios .form-compact.form-compact--ios-scale textarea.input-field,
+  .ios .form-compact.form-compact--ios-scale .input-with-icon input,
+  .ios .form-compact.form-compact--ios-scale input[type="date"].input-field {
+    transform: scale(0.9);
+    transform-origin: top left;
+    will-change: transform;
+  }
+
+/* Compact variant: shrink text and numbers for the freelancer payment slip */
+.print-slip-compact {
+  font-size: 0.9rem; /* ~14.4px base */
+}
+.print-slip-compact h1 { font-size: 1.5rem; }
+.print-slip-compact h2 { font-size: 1.1rem; }
+.print-slip-compact h3 { font-size: 1rem; }
+.print-slip-compact p,
+.print-slip-compact span,
+.print-slip-compact li { font-size: 0.9rem; line-height: 1.35; }
+.print-slip-compact table { font-size: 0.85rem; }
+.print-slip-compact th,
+.print-slip-compact td { padding: 6px 8px; }
+.print-slip-compact .invoice-totals .font-bold { font-size: 1rem; }
+.print-slip-compact .text-right,
+.print-slip-compact .tabular-nums,
+.print-slip-compact .amount { font-size: 0.95rem; }
+
+@media (max-width: 640px) {
+  .print-slip-compact { font-size: 0.85rem; }
+  .print-slip-compact table { font-size: 0.8rem; }
+}
+
+@media print {
+  .print-slip-compact { font-size: 10pt !important; }
+  .print-slip-compact table { font-size: 9pt !important; }
+  .print-slip-compact .invoice-totals .font-bold { font-size: 11pt !important; }
+  .print-slip-compact .text-right,
+  .print-slip-compact .tabular-nums,
+  .print-slip-compact .amount { font-size: 10pt !important; }
+}
+
+  /* keep container spacing tight so scaled controls don't look spaced out */
+  .ios .form-compact.form-compact--ios-scale .input-group,
+  .ios .form-compact.form-compact--ios-scale .form-group {
+    margin-bottom: 8px !important;
+  }
+
+  /* shrink dropdown arrow visually */
+  .ios .form-compact.form-compact--ios-scale select.input-field {
+    background-size: 1em 1em !important;
+    background-position: right 0.6rem center !important;
+  }
+}
+
+/* Force the tiniest text on mobile (will cause iOS zoom on focus) */
+@media (max-width: 768px) {
+  .form-compact.form-compact--force-tiny input.input-field,
+  .form-compact.form-compact--force-tiny select.input-field,
+  .form-compact.form-compact--force-tiny textarea.input-field,
+  .form-compact.form-compact--force-tiny .input-with-icon input,
+  .form-compact.form-compact--force-tiny input[type="date"].input-field {
+    font-size: 13px !important;
+  }
+
+  .form-compact.form-compact--force-tiny input.input-field::placeholder,
+  .form-compact.form-compact--force-tiny textarea.input-field::placeholder {
+    font-size: 13px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-compact.form-compact--force-tiny input.input-field,
+  .form-compact.form-compact--force-tiny select.input-field,
+  .form-compact.form-compact--force-tiny textarea.input-field,
+  .form-compact.form-compact--force-tiny .input-with-icon input,
+  .form-compact.form-compact--force-tiny input[type="date"].input-field {
+    font-size: 12px !important;
+  }
+
+  .form-compact.form-compact--force-tiny input.input-field::placeholder,
+  .form-compact.form-compact--force-tiny textarea.input-field::placeholder {
+    font-size: 12px !important;
+  }
+}
 /* Enhanced Mobile Experience CSS */
 
 /* Touch feedback animations */
@@ -36,18 +132,15 @@
   width: 300px;
   height: 300px;
 }
-
 /* Enhanced card hover effects for touch devices */
 .card-hover {
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
-
 .card-hover:active {
   transform: translateY(2px) scale(0.98);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Smooth scroll for iOS */
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
@@ -58,6 +151,80 @@ body {
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+  /* --- Freelancer Portal: Payment Slip Enhancements --- */
+  /* Base styles for printable content */
+  .printable-content {
+    background: #ffffff;
+    color: #0f172a; /* slate-900 */
+  }
+
+  /* Compact typography rules for the freelancer payment slip */
+  .print-slip-compact {
+    font-size: 0.9rem; /* ~14.4px base */
+  }
+  .print-slip-compact h1 { font-size: 1.5rem; }
+  .print-slip-compact h2 { font-size: 1.1rem; }
+  .print-slip-compact h3 { font-size: 1rem; }
+  .print-slip-compact p,
+  .print-slip-compact span,
+  .print-slip-compact li { font-size: 0.9rem; line-height: 1.35; }
+  .print-slip-compact table { font-size: 0.85rem; }
+  .print-slip-compact th,
+  .print-slip-compact td { padding: 6px 8px; }
+  .print-slip-compact .invoice-totals .font-bold { font-size: 1rem; }
+  .print-slip-compact .text-right,
+  .print-slip-compact .tabular-nums,
+  .print-slip-compact .amount { font-size: 0.95rem; }
+
+  @media (max-width: 640px) {
+    .print-slip-compact { font-size: 0.85rem; }
+    .print-slip-compact table { font-size: 0.8rem; }
+    .print-slip-compact .invoice-totals .font-bold { font-size: 0.95rem; }
+    .print-slip-compact .text-right,
+    .print-slip-compact .tabular-nums,
+    .print-slip-compact .amount { font-size: 0.9rem; }
+  }
+
+  @media print {
+    .print-slip-compact { font-size: 10pt !important; }
+    .print-slip-compact table { font-size: 9pt !important; }
+    .print-slip-compact .invoice-totals .font-bold { font-size: 11pt !important; }
+    .print-slip-compact .text-right,
+    .print-slip-compact .tabular-nums,
+    .print-slip-compact .amount { font-size: 10pt !important; }
+  }
+
+/* Prevent awkward page breaks in key blocks */
+.avoid-break {
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+/* Print-specific adjustments */
+@media print {
+  /* Hide UI elements not intended for print */
+  .non-printable { display: none !important; }
+
+  /* Ensure clean page background and remove shadows */
+  html, body { background: #ffffff !important; }
+
+  .printable-content .shadow,
+  .printable-content .shadow-md,
+  .printable-content .shadow-lg,
+  .printable-content .shadow-xl,
+  .printable-content .shadow-2xl { box-shadow: none !important; }
+
+  .printable-content {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .avoid-break {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
 }
 
 /* Prevent text selection on UI elements */
@@ -766,6 +933,93 @@ a:focus-visible {
     margin-top: 12px !important;
   }
 
+  /* Extra-compact invoice typography for small phones */
+  @media (max-width: 480px) {
+    .print-invoice {
+      padding: 12px !important;
+      font-size: 12px !important; /* Base smaller text inside invoice */
+    }
+
+    .print-invoice header h1 {
+      font-size: 1rem !important; /* Smaller Invoice title */
+      line-height: 1.2 !important;
+    }
+
+    /* Make address/phone/email lines smaller */
+    .print-invoice header p,
+    .print-invoice header span,
+    .print-invoice .doc-header-grid p,
+    .print-invoice .doc-header-grid span,
+    .print-invoice .contact-line,
+    .print-invoice .address-line {
+      font-size: 0.75rem !important;
+      line-height: 1.3 !important;
+    }
+
+    /* Smaller numbers and monetary amounts */
+    .print-invoice .tabular-nums,
+    .print-invoice .amount,
+    .print-invoice .text-right {
+      font-size: 11px !important;
+    }
+
+    /* Tighter table text on very small screens */
+    .print-invoice table {
+      font-size: 11px !important;
+    }
+
+    .print-invoice th,
+    .print-invoice td {
+      padding: 6px 4px !important;
+    }
+
+    /* Totals section: reduce emphasis size */
+    .print-invoice .totals-section .font-bold {
+      font-size: 0.9rem !important;
+    }
+
+    .print-invoice .totals-section .text-sm {
+      font-size: 0.75rem !important;
+    }
+
+    /* Generic printable area fallback (for invoices without .print-invoice class) */
+    .printable-area {
+      font-size: 12px !important;
+      padding: 12px !important;
+    }
+
+    .printable-area h1 { font-size: 1rem !important; line-height: 1.2 !important; }
+    .printable-area h2 { font-size: 0.95rem !important; line-height: 1.25 !important; }
+    .printable-area h3 { font-size: 0.9rem !important; line-height: 1.3 !important; }
+    .printable-area h4, 
+    .printable-area h5, 
+    .printable-area h6 { font-size: 0.85rem !important; line-height: 1.3 !important; }
+
+    .printable-area p,
+    .printable-area span,
+    .printable-area li {
+      font-size: 0.8rem !important;
+      line-height: 1.35 !important;
+    }
+
+    .printable-area table { font-size: 11px !important; }
+    .printable-area th, .printable-area td { padding: 6px 4px !important; }
+
+    /* Contact/address lines commonly used in headers */
+    .printable-area .contact-line,
+    .printable-area .address-line,
+    .printable-area .meta-line {
+      font-size: 0.75rem !important;
+    }
+
+    /* Amounts and right-aligned numbers */
+    .printable-area .tabular-nums,
+    .printable-area .amount,
+    .printable-area .text-right {
+      font-size: 11px !important;
+    }
+  }
+
   /* Fix receipt layout for mobile */
   .print-receipt {
     padding: 16px !important;
@@ -1150,12 +1404,6 @@ a:focus-visible {
   animation: skeleton-loading 1.5s infinite;
 }
 
-/* Dark mode skeleton */
-html.dark .skeleton {
-  background: linear-gradient(90deg, #374151 25%, #4b5563 50%, #374151 75%);
-  background-size: 200px 100%;
-}
-
 /* Enhanced accessibility */
 @media (prefers-reduced-motion: reduce) {
 
@@ -1178,6 +1426,106 @@ html.dark .skeleton {
   .card-hover {
     border: 1px solid currentColor;
   }
+}
+
+/* Top-level mobile overrides for invoice so they are not nested and will apply */
+@media (max-width: 768px) {
+  /* Invoice container spacing */
+  .print-invoice { padding: 16px !important; }
+  .print-invoice header { flex-direction: column !important; gap: 16px !important; }
+  .print-invoice header > div:last-child { text-align: left !important; }
+  .print-invoice .doc-header-grid { grid-template-columns: 1fr !important; gap: 16px !important; }
+  .print-invoice .doc-header-grid > div { padding: 16px !important; }
+  .print-invoice table { font-size: 12px !important; }
+  .print-invoice th, .print-invoice td { padding: 8px 4px !important; }
+  .print-invoice .totals-section { flex-direction: column !important; gap: 16px !important; }
+  .print-invoice .doc-footer-flex { flex-direction: column !important; gap: 16px !important; }
+}
+
+@media (max-width: 480px) {
+  /* Extra-compact invoice and generic printable area on small phones */
+  .print-invoice, .printable-area { padding: 8px !important; font-size: 12px !important; }
+  .print-invoice header h1, .printable-area h1 { font-size: 1rem !important; line-height: 1.2 !important; }
+  .printable-area h2 { font-size: 0.95rem !important; line-height: 1.25 !important; }
+  .printable-area h3 { font-size: 0.9rem !important; line-height: 1.3 !important; }
+  .printable-area h4, .printable-area h5, .printable-area h6 { font-size: 0.85rem !important; line-height: 1.3 !important; }
+  .print-invoice header p,
+  .print-invoice header span,
+  .print-invoice .doc-header-grid p,
+  .print-invoice .doc-header-grid span,
+  .print-invoice .contact-line,
+  .print-invoice .address-line,
+  .printable-area p,
+  .printable-area span,
+  .printable-area li { font-size: 0.8rem !important; line-height: 1.35 !important; }
+  .print-invoice table, .printable-area table { font-size: 11px !important; }
+  .print-invoice th, .print-invoice td, .printable-area th, .printable-area td { padding: 6px 4px !important; }
+  .print-invoice .tabular-nums,
+  .print-invoice .amount,
+  .print-invoice .text-right,
+  .printable-area .tabular-nums,
+  .printable-area .amount,
+  .printable-area .text-right { font-size: 11px !important; }
+
+  /* Client Portal specific tightening */
+  .template-wrapper .print-invoice header h2 { /* "Invoice" title */
+    font-size: 0.85rem !important;
+    line-height: 1.2 !important;
+  }
+  .template-wrapper .print-invoice p,
+  .template-wrapper .print-invoice span,
+  .template-wrapper .print-invoice li {
+    font-size: 0.7rem !important;
+    line-height: 1.3 !important;
+  }
+  .template-wrapper .print-invoice .font-extrabold { /* big amount in blue box */
+    font-size: 0.9rem !important;
+    line-height: 1.2 !important;
+  }
+  .template-wrapper .print-invoice .font-bold {
+    font-size: 0.85rem !important;
+  }
+  .template-wrapper .print-invoice .invoice-table {
+    font-size: 9px !important;
+  }
+  .template-wrapper .print-invoice .tabular-nums,
+  .template-wrapper .print-invoice .amount,
+  .template-wrapper .print-invoice .text-right {
+    font-size: 10px !important;
+  }
+}
+
+/* Ultra-compact for very small phones */
+@media (max-width: 380px) {
+  .template-wrapper .print-invoice header h2 {
+    font-size: 0.8rem !important;
+  }
+  .template-wrapper .print-invoice p,
+  .template-wrapper .print-invoice span,
+  .template-wrapper .print-invoice li {
+    font-size: 0.6rem !important;
+    line-height: 1.25 !important;
+  }
+  .template-wrapper .print-invoice header p,
+  .template-wrapper .print-invoice header span {
+    font-size: 0.6rem !important;
+    line-height: 1.25 !important;
+  }
+  .template-wrapper .print-invoice .font-extrabold {
+    font-size: 0.85rem !important;
+  }
+  .template-wrapper .print-invoice .font-bold {
+    font-size: 0.8rem !important;
+  }
+  .template-wrapper .print-invoice .invoice-table {
+    font-size: 8px !important;
+  }
+  .template-wrapper .print-invoice th,
+  .template-wrapper .print-invoice td {
+    padding: 4px 3px !important;
+  }
+  /* extra-compact container padding on very small phones */
+  .print-invoice, .printable-area { padding: 6px !important; }
 }
 
 /* Enhanced print styles for modal-based documents (Invoice/Receipt/Contract) */
@@ -4456,12 +4804,151 @@ Portal-specific print styles */
   background-color: #f3f4f6;
   color: #9ca3af;
   cursor: not-allowed;
-  opacity: 0.5;
-  transform: none;
-  box-shadow: none;
 }
 
-.button-secondary:disabled:hover {
-  transform: none;
-  box-shadow: none;
+/* Mobile small phones: shrink input/select text size on non-iOS devices to avoid iOS zoom */
+@media (max-width: 480px) {
+  /* Exclude iOS by checking html:not(.ios) set in index.html */
+  html:not(.ios) input,
+  html:not(.ios) textarea,
+  html:not(.ios) select,
+  html:not(.ios) .input-field,
+  html:not(.ios) select.input-field {
+    font-size: 14px !important;
+  }
+
+  html:not(.ios) input::placeholder,
+  html:not(.ios) textarea::placeholder {
+    font-size: 14px !important;
+  }
+}
+
+/* Also shrink floating labels and helper text on small phones (non-iOS) */
+@media (max-width: 480px) {
+  html:not(.ios) .input-label {
+    font-size: 12px !important;
+  }
+  html:not(.ios) .input-helper-text {
+    font-size: 12px !important;
+  }
+  /* Compact input/select spacing */
+  html:not(.ios) .input-field {
+    min-height: 36px !important;
+    padding: 8px 10px !important;
+    line-height: 1.3 !important;
+  }
+  html:not(.ios) select.input-field {
+    padding-right: 2.5rem !important;
+  }
+}
+
+/* Mobile Compact Form: shrink Text Field, Select, keep Textarea multi-line, and tighten form spacing */
+@media (max-width: 768px) {
+  /* Apply to forms wrapped with .form-compact to avoid global side effects */
+  .form-compact {
+    gap: 12px !important;
+  }
+
+  .form-compact .form-group,
+  .form-compact .input-group {
+    margin-bottom: 10px !important;
+  }
+
+  /* Text Field (single line) */
+  .form-compact input.input-field {
+    font-size: 16px !important; /* prevent iOS zoom */
+    min-height: 40px !important;
+    padding: 10px 12px !important;
+    line-height: 1.3 !important;
+  }
+
+  /* Dropdown / Select Field */
+  .form-compact select.input-field {
+    font-size: 16px !important; /* prevent iOS zoom */
+    min-height: 40px !important;
+    padding: 10px 2.5rem 10px 12px !important; /* keep arrow space */
+    line-height: 1.3 !important;
+    background-position: right 0.75rem center !important;
+  }
+
+  /* Textarea (multi-line) */
+  .form-compact textarea.input-field {
+    font-size: 16px !important; /* prevent iOS zoom */
+    min-height: 140px !important; /* bigger box, many lines */
+    padding: 10px 12px !important;
+    line-height: 1.5 !important;
+    resize: vertical !important;
+  }
+
+  /* Labels and helper text slightly smaller but readable */
+  .form-compact .input-label { font-size: 0.9rem !important; }
+  .form-compact .input-helper-text { font-size: 0.8rem !important; }
+
+  /* Form container padding (optional) */
+  .form-compact .form-body,
+  .form-compact form {
+    padding: 8px !important;
+  }
+}
+
+/* Extra small phones: allow smaller typography on non-iOS only to avoid zoom */
+@media (max-width: 480px) {
+  html:not(.ios) .form-compact input.input-field,
+  html:not(.ios) .form-compact select.input-field {
+    font-size: 14px !important;
+    min-height: 36px !important;
+    padding: 8px 10px !important;
+  }
+
+  html:not(.ios) .form-compact select.input-field {
+    padding-right: 2.25rem !important;
+    background-position: right 0.6rem center !important;
+  }
+
+  html:not(.ios) .form-compact textarea.input-field {
+    font-size: 14px !important;
+    min-height: 160px !important; /* keep textarea comfortably large */
+    padding: 8px 10px !important;
+    line-height: 1.45 !important;
+  }
+
+  html:not(.ios) .form-compact .input-label { font-size: 0.85rem !important; }
+  html:not(.ios) .form-compact .input-helper-text { font-size: 0.75rem !important; }
+}
+
+/* OPTIONAL: Force smaller input/select text even on iOS (may cause iOS zoom on focus) */
+@media (max-width: 768px) {
+  .form-compact.form-compact--force-small input.input-field,
+  .form-compact.form-compact--force-small select.input-field,
+  .form-compact.form-compact--force-small textarea.input-field,
+  .form-compact.form-compact--force-small .input-with-icon input,
+  .form-compact.form-compact--force-small input[type="date"].input-field {
+    font-size: 15px !important;
+  }
+
+  .form-compact.form-compact--force-small input.input-field::placeholder,
+  .form-compact.form-compact--force-small textarea.input-field::placeholder {
+    font-size: 15px !important;
+  }
+
+  .form-compact.form-compact--force-small .input-label { font-size: 0.85rem !important; }
+  .form-compact.form-compact--force-small .input-helper-text { font-size: 0.75rem !important; }
+}
+
+@media (max-width: 480px) {
+  .form-compact.form-compact--force-small input.input-field,
+  .form-compact.form-compact--force-small select.input-field,
+  .form-compact.form-compact--force-small textarea.input-field,
+  .form-compact.form-compact--force-small .input-with-icon input,
+  .form-compact.form-compact--force-small input[type="date"].input-field {
+    font-size: 14px !important;
+  }
+
+  .form-compact.form-compact--force-small input.input-field::placeholder,
+  .form-compact.form-compact--force-small textarea.input-field::placeholder {
+    font-size: 14px !important;
+  }
+
+  .form-compact.form-compact--force-small .input-label { font-size: 0.8rem !important; }
+  .form-compact.form-compact--force-small .input-helper-text { font-size: 0.7rem !important; }
 }

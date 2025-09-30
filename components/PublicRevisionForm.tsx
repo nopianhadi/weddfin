@@ -123,7 +123,7 @@ const PublicRevisionForm: React.FC<PublicRevisionFormProps> = ({ projects, teamM
                         </div>
                     </div>
 
-                    <form className="space-y-4" onSubmit={handleSubmit}>
+                    <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
                         <div className="input-group">
                             <select id="status" name="status" value={formData.status} onChange={e => setFormData(p => ({...p, status: e.target.value as RevisionStatus}))} className="input-field" required>
                                 <option value={RevisionStatus.IN_PROGRESS}>Sedang Dikerjakan</option>

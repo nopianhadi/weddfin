@@ -23,30 +23,14 @@ export async function uploadDpProof(file: File): Promise<string> {
   return publicUrl.publicUrl;
 }
 
-export async function uploadGalleryImage(file: File, compress: boolean = true): Promise<string> {
+export async function uploadGalleryImage(file: File, compress: boolean = false): Promise<string> {
   // Validate file type
   if (!file.type.startsWith('image/')) {
     throw new Error('File must be an image');
   }
   
-  let processedFile = file;
-  
-  // Compress image if requested and file is large
-  if (compress && file.size > 500 * 1024) { // Compress if > 500KB
-    try {
-      const { compressImage } = await import('../utils/imageCompression');
-      processedFile = await compressImage(file, {
-        maxWidth: 1920,
-        maxHeight: 1080,
-        quality: 0.8,
-        format: 'jpeg'
-      });
-      console.log(`Image compressed: ${file.size} -> ${processedFile.size} bytes`);
-    } catch (compressionError) {
-      console.warn('Image compression failed, using original:', compressionError);
-      processedFile = file;
-    }
-  }
+  // Gunakan file asli tanpa kompresi
+  const processedFile = file;
   
   // Final size check
   if (processedFile.size > 10 * 1024 * 1024) { // 10MB limit

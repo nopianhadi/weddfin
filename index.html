@@ -49,36 +49,6 @@
         
         color-scheme: light;
       }
-      
-      html.dark {
-        /* App Dashboard Colors */
-        --color-bg: #0f172a; /* slate-900 */
-        --color-surface: #1e293b; /* slate-800 */
-        --color-text-light: #f1f5f9; /* slate-100 */
-        --color-text-primary: #cbd5e1; /* slate-300 */
-        --color-text-secondary: #94a3b8; /* slate-400 */
-        --color-accent: #60a5fa; /* blue-400 */
-        --color-accent-hover: #3b82f6; /* blue-500 */
-        --color-accent-light: #80b7fa;
-        --color-accent-dark: #5694e1;
-        --color-accent-hsl: 217 96% 68%;
-        --color-border: #334155; /* slate-700 */
-        --color-input-bg: #0f172a; /* slate-900 */
-        --color-success: #4ade80; /* green-400 */
-        --color-danger: #f87171; /* red-400 */
-
-        /* Public Pages (Portals, Forms) Default Colors */
-        --public-bg: #020617; /* slate-950 */
-        --public-surface: #0f172a; /* slate-900 */
-        --public-border: #1e293b; /* slate-800 */
-        --public-text-primary: #f1f5f9; /* slate-100 */
-        --public-text-secondary: #94a3b8; /* slate-400 */
-        --public-accent: #60a5fa; /* blue-400 */
-        --public-accent-hover: #3b82f6; /* blue-500 */
-        --public-accent-hsl: 217 96% 68%;
-        
-        color-scheme: dark;
-      }
 
       body {
         font-family: 'Manrope', 'sans-serif';
@@ -284,9 +254,6 @@
         background-size: 1.25em 1.25em;
         padding-right: 3rem;
       }
-      html.dark select.input-field {
-         background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
-      }
       
       /* Enhanced Checkbox & Radio */
       input[type="checkbox"], input[type="radio"] {
@@ -323,9 +290,6 @@
           transition: opacity 0.2s;
           width: 20px;
           height: 20px;
-      }
-       html.dark input[type="date"]::-webkit-calendar-picker-indicator {
-           filter: invert(1);
       }
       input[type="date"]::-webkit-calendar-picker-indicator:hover {
           opacity: 1;
@@ -448,20 +412,11 @@
         overflow: hidden;
       }
       
-      html.dark .button-secondary {
-        color: var(--color-text-primary);
-      }
-      
       .button-secondary:hover {
         color: #1e293b;
         background-color: #e2e8f0;
         transform: translateY(-1px);
         box-shadow: 0 4px 12px -2px rgba(0, 0, 0, 0.1);
-      }
-      
-       html.dark .button-secondary:hover {
-        color: var(--color-text-light);
-        background-color: #475569;
       }
       
       .button-secondary:active {
@@ -1011,6 +966,18 @@
       }
     </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script>
+    // Detect iOS and mark <html> so CSS can avoid reducing input font-size on iOS (prevents zoom)
+    (function () {
+      try {
+        var ua = navigator.userAgent || navigator.vendor || window.opera;
+        var isIOS = /iPad|iPhone|iPod/.test(ua);
+        if (isIOS) {
+          document.documentElement.classList.add('ios');
+        }
+      } catch (_) {}
+    })();
+  </script>
   <script type="importmap">
 {
   "imports": {

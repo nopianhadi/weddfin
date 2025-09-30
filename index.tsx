@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './src/index.css';
+import './app/index.css';
 
 // Disable console.log globally in browser context
 if (typeof window !== 'undefined' && typeof console !== 'undefined') {

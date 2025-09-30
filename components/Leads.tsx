@@ -73,7 +73,7 @@ interface LeadFormProps {
 
 const LeadForm: React.FC<LeadFormProps> = ({ formData, handleFormChange, handleSubmit, handleCloseModal, modalMode }) => {
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 form-compact form-compact--ios-scale">
             <div className="input-group">
                 <input type="text" id="name" name="name" value={formData.name} onChange={handleFormChange} className="input-field" placeholder=" " required />
                 <label htmlFor="name" className="input-label">Nama Prospek</label>
@@ -149,7 +149,7 @@ const ConvertLeadForm: React.FC<ConvertLeadFormProps> = ({ formData, handleFormC
     }, [formData.packageId, formData.selectedAddOnIds, formData.dp, formData.promoCodeId, packages, addOns, promoCodes]);
     
     return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="form-compact form-compact--ios-scale">
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-2">
                 {/* Left Column: Client & Project Info */}
                 <div className="space-y-4">

@@ -375,7 +375,7 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
             </div>
 
             <Modal isOpen={packageEditMode !== null} onClose={handlePackageCancelEdit} title={packageEditMode === 'new' ? 'Tambah Paket Baru' : 'Edit Paket'} size="3xl">
-                <form onSubmit={handlePackageSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2">
+                <form onSubmit={handlePackageSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 form-compact form-compact--ios-scale">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="input-group"><input type="text" name="name" value={packageFormData.name} onChange={handlePackageInputChange} className="input-field" placeholder=" " required /><label className="input-label">Nama Paket</label></div>
                         <div className="input-group"><input type="number" name="price" value={packageFormData.price} onChange={handlePackageInputChange} className="input-field" placeholder=" " required /><label className="input-label">Harga (IDR)</label></div>
