@@ -11,8 +11,13 @@ node_modules
 dist
 dist-ssr
 *.local
+
+# Environment files - IMPORTANT: Don't commit sensitive keys
 .env
-.env.*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # Editor directories and files
 .vscode/*
@@ -24,3 +29,33 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Capacitor
+ios/App/Pods
+ios/App/public
+ios/App/Podfile.lock
+android/app/src/main/assets/public
+android/.idea
+android/.gradle
+android/build
+android/app/build
+android/local.properties
+android/gradle.properties
+
+# iOS
+*.ipa
+*.dSYM.zip
+*.dSYM
+DerivedData
+*.xcuserstate
+*.xcworkspace/xcuserdata
+
+# Android
+*.apk
+*.aab
+*.keystore
+*.jks
+local.properties
+
+# Codemagic
+codemagic.yaml.enc
