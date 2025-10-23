@@ -9,6 +9,45 @@ app:
   - BITRISE_DISTRIBUTION_METHOD: development
 
 workflows:
+  test:
+    description: |
+      Test iOS app with modern simulator
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - script@1:
+        title: Install Node dependencies
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+            npm install
+    - script@1:
+        title: Build web app
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+            npm run build
+    - script@1:
+        title: Sync Capacitor
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            set -ex
+            npx cap sync ios
+    - cocoapods-install@2:
+        inputs:
+        - source_root_path: "$BITRISE_SOURCE_DIR/ios/App"
+        - podfile_path: "$BITRISE_SOURCE_DIR/ios/App/Podfile"
+    - xcode-build-for-test@2:
+        inputs:
+        - project_path: "$BITRISE_PROJECT_PATH"
+        - scheme: "$BITRISE_SCHEME"
+        - destination: "platform=iOS Simulator,name=iPhone 15,OS=latest"
+    - deploy-to-bitrise-io@2: {}
+
   primary:
     description: |
       Build iOS IPA for Weddfin app
@@ -42,6 +81,11 @@ workflows:
         inputs:
         - source_root_path: "$BITRISE_SOURCE_DIR/ios/App"
         - podfile_path: "$BITRISE_SOURCE_DIR/ios/App/Podfile"
+    - xcode-build-for-test@2:
+        inputs:
+        - project_path: "$BITRISE_PROJECT_PATH"
+        - scheme: "$BITRISE_SCHEME"
+        - destination: "platform=iOS Simulator,name=iPhone 15,OS=latest"
     - xcode-archive@5:
         inputs:
         - project_path: "$BITRISE_PROJECT_PATH"
@@ -92,4 +136,4 @@ trigger_map:
 - push_branch: main
   workflow: primary
 - pull_request_source_branch: "*"
-  workflow: primary
+  workflow: test
