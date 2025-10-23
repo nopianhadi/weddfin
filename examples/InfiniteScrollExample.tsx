@@ -1,6 +1,6 @@
 import React from 'react';
 import { useSearchableInfiniteScroll } from '../hooks/useSearchableInfiniteScroll';
-import { InfiniteScrollContainer } from '../components/InfiniteScrollContainer';
+import { InfiniteScrollContainer } from './components/InfiniteScrollContainer';
 import { SearchBar } from '../components/SearchBar';
 import { FilterBar } from '../components/FilterBar';
 import { listClientsPaginated } from '../services/clients';

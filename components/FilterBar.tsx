@@ -32,10 +32,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   return (
     <div className={`bg-gray-50 p-4 rounded-lg ${className}`}>
-      <div className="flex flex-wrap gap-4 items-end">
+      <div className="flex flex-nowrap sm:flex-wrap gap-2 sm:gap-4 items-end overflow-x-auto [-ms-overflow-style:none] [scrollbar-width:none] -mx-4 px-4 sm:mx-0 sm:px-0">
         {filterConfigs.map((config) => (
-          <div key={config.key} className="flex flex-col">
-            <label className="text-sm font-medium text-gray-700 mb-1">
+          <div key={config.key} className="flex flex-col min-w-[140px] sm:min-w-0">
+            <label className="text-xs sm:text-sm font-medium text-gray-700 mb-1">
               {config.label}
             </label>
             
@@ -43,7 +43,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
               <select
                 value={filters[config.key] || ''}
                 onChange={(e) => onFilterChange(config.key, e.target.value || undefined)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               >
                 <option value="">Semua</option>
                 {config.options?.map((option) => (
@@ -59,7 +59,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 type="date"
                 value={filters[config.key] || ''}
                 onChange={(e) => onFilterChange(config.key, e.target.value || undefined)}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             )}
             
@@ -69,7 +69,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
                 value={filters[config.key] || ''}
                 onChange={(e) => onFilterChange(config.key, e.target.value || undefined)}
                 placeholder={config.placeholder}
-                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="px-2 sm:px-3 py-2 text-xs sm:text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             )}
           </div>
@@ -78,7 +78,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
         {hasActiveFilters && (
           <button
             onClick={onClearFilters}
-            className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-100"
+            className="px-3 sm:px-4 py-2 text-xs sm:text-sm text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-100 flex-shrink-0"
           >
             Clear Filters
           </button>

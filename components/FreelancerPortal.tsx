@@ -53,19 +53,21 @@ const FreelancerPortal: React.FC<FreelancerPortalProps> = ({ accessId, teamMembe
         // Saat data tim belum dimuat (mis. tepat setelah reload), hindari menampilkan error palsu
         if (!teamMembers || teamMembers.length === 0) {
             return (
-                <div className="flex items-center justify-center min-h-screen bg-public-bg p-4">
-                    <div className="w-full max-w-lg p-8 text-center bg-public-surface rounded-2xl shadow-lg">
-                        <h1 className="text-2xl font-bold text-public-text-primary">Memuat Portal…</h1>
-                        <p className="mt-4 text-public-text-secondary">Mohon tunggu sebentar.</p>
+                <div className="flex items-center justify-center min-h-screen bg-white p-4">
+                    <div className="w-full max-w-lg p-8 text-center bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200">
+                        <div className="text-6xl mb-4 animate-pulse">⏳</div>
+                        <h1 className="text-2xl font-bold text-slate-800">Memuat Portal…</h1>
+                        <p className="mt-4 text-slate-600">Mohon tunggu sebentar.</p>
                     </div>
                 </div>
             );
         }
         return (
-            <div className="flex items-center justify-center min-h-screen bg-public-bg p-4">
-                <div className="w-full max-w-lg p-8 text-center bg-public-surface rounded-2xl shadow-lg">
+            <div className="flex items-center justify-center min-h-screen bg-white p-4">
+                <div className="w-full max-w-lg p-8 text-center bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200">
+                    <div className="text-6xl mb-4">❌</div>
                     <h1 className="text-2xl font-bold text-red-500">Portal Tidak Ditemukan</h1>
-                    <p className="mt-4 text-public-text-primary">Tautan yang Anda gunakan tidak valid. Silakan hubungi admin.</p>
+                    <p className="mt-4 text-slate-700">Tautan yang Anda gunakan tidak valid. Silakan hubungi admin.</p>
                 </div>
             </div>
         );
@@ -160,20 +162,20 @@ const FreelancerPortal: React.FC<FreelancerPortalProps> = ({ accessId, teamMembe
     }
 
     return (
-        <div className="min-h-screen bg-public-bg text-public-text-primary p-4 sm:p-6 lg:p-8">
+        <div className="min-h-screen bg-white text-public-text-primary p-3 md:p-4 sm:p-6 lg:p-8">
             <div className="max-w-5xl mx-auto">
-                <header className="mb-8 p-4 sm:p-6 bg-public-surface rounded-2xl shadow-lg border border-public-border widget-animate">
+                <header className="mb-6 md:mb-8 p-3 md:p-4 sm:p-6 bg-white/95 backdrop-blur-xl rounded-3xl shadow-xl border border-slate-200 widget-animate">
                     <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
                         <div>
-                            <h1 className="text-3xl font-bold text-gradient">Portal Freelancer</h1>
-                            <p className="text-lg text-public-text-secondary mt-2">Selamat Datang, {freelancer.name}!</p>
+                            <h1 className="text-2xl md:text-3xl font-bold text-slate-800 flex items-center gap-2">👨‍💻 Portal Freelancer</h1>
+                            <p className="text-base md:text-lg text-slate-600 mt-2">Selamat Datang, {freelancer.name}!</p>
                         </div>
                         <div className="lg:w-[360px]">
                             <HelpBox variant="public" phone="085693762240" />
                         </div>
                     </div>
                 </header>
-                <div className="border-b border-public-border mb-6 widget-animate" style={{ animationDelay: '100ms' }}><nav className="-mb-px flex space-x-6 overflow-x-auto">{tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${activeTab === tab.id ? 'border-public-accent text-public-accent' : 'border-transparent text-public-text-secondary hover:text-public-text-primary'}`}><tab.icon className="w-5 h-5"/> {tab.label}</button>))}</nav></div>
+                <div className="bg-white/95 backdrop-blur-xl rounded-2xl shadow-lg border border-slate-200 mb-6 p-3 widget-animate" style={{ animationDelay: '100ms' }}><nav className="flex space-x-2 overflow-x-auto">{tabs.map(tab => (<button key={tab.id} onClick={() => setActiveTab(tab.id)} className={`shrink-0 inline-flex items-center gap-2 py-3 px-4 rounded-xl font-semibold text-sm transition-all duration-300 ${activeTab === tab.id ? 'bg-blue-500 text-white shadow-lg' : 'text-slate-600 hover:bg-slate-100'}`}><tab.icon className="w-5 h-5"/> {tab.label}</button>))}</nav></div>
                 <main>{renderTabContent()}</main>
                 <Modal isOpen={!!selectedProject} onClose={() => setSelectedProject(null)} title={`Detail Proyek: ${selectedProject?.projectName}`} size="3xl">
                     {selectedProject && <ProjectDetailModal project={selectedProject} freelancer={freelancer} onUpdateRevision={onUpdateRevision} showNotification={showNotification} onClose={() => setSelectedProject(null)} />}
@@ -227,27 +229,27 @@ const DashboardTab: React.FC<{freelancer: TeamMember, projects: Project[], teamP
 
     return (
         <div className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="widget-animate" style={{ animationDelay: '200ms' }}><StatCard icon={<CreditCardIcon className="w-6 h-6"/>} title="Total Fee Diterima" value={formatDisplayCurrency(stats.paidFee)} iconBgColor="bg-green-500/20" iconColor="text-green-400" /></div>
-                <div className="widget-animate" style={{ animationDelay: '300ms' }}><StatCard icon={<AlertCircleIcon className="w-6 h-6"/>} title="Fee Belum Dibayar" value={formatDisplayCurrency(stats.unpaidFee)} iconBgColor="bg-red-500/20" iconColor="text-red-400" /></div>
-                <div className="widget-animate" style={{ animationDelay: '400ms' }}><StatCard icon={<FolderKanbanIcon className="w-6 h-6"/>} title="Proyek Aktif" value={stats.activeProjects.toString()} iconBgColor="bg-blue-500/20" iconColor="text-blue-400" /></div>
-                <div className="widget-animate" style={{ animationDelay: '500ms' }}><StatCard icon={<CheckSquareIcon className="w-6 h-6"/>} title="Proyek Selesai" value={stats.completedProjects.toString()} iconBgColor="bg-indigo-500/20" iconColor="text-indigo-400" /></div>
+            <div className="grid grid-cols-2 gap-4 md:gap-6">
+                <div className="widget-animate" style={{ animationDelay: '200ms' }}><StatCard icon={<CreditCardIcon className="w-6 h-6"/>} title="Total Fee Diterima" value={formatDisplayCurrency(stats.paidFee)} iconBgColor="bg-gradient-to-br from-green-500 to-emerald-500" iconColor="text-white" /></div>
+                <div className="widget-animate" style={{ animationDelay: '300ms' }}><StatCard icon={<AlertCircleIcon className="w-6 h-6"/>} title="Fee Belum Dibayar" value={formatDisplayCurrency(stats.unpaidFee)} iconBgColor="bg-gradient-to-br from-orange-500 to-red-500" iconColor="text-white" /></div>
+                <div className="widget-animate" style={{ animationDelay: '400ms' }}><StatCard icon={<FolderKanbanIcon className="w-6 h-6"/>} title="Proyek Aktif" value={stats.activeProjects.toString()} iconBgColor="bg-gradient-to-br from-blue-500 to-cyan-500" iconColor="text-white" /></div>
+                <div className="widget-animate" style={{ animationDelay: '500ms' }}><StatCard icon={<CheckSquareIcon className="w-6 h-6"/>} title="Proyek Selesai" value={stats.completedProjects.toString()} iconBgColor="bg-gradient-to-br from-indigo-500 to-purple-500" iconColor="text-white" /></div>
             </div>
-             <div className="bg-public-surface p-4 sm:p-6 rounded-2xl shadow-lg border border-public-border widget-animate" style={{ animationDelay: '600ms' }}>
-                <h3 className="text-xl font-bold text-public-text-primary mb-4">Agenda & Tugas Mendesak</h3>
+             <div className="bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-slate-200 widget-animate" style={{ animationDelay: '600ms' }}>
+                <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="text-2xl">📅</span> Agenda & Tugas Mendesak</h3>
                 <div className="space-y-3">
                     {agendaItems.length > 0 ? agendaItems.map((item, index) => (
-                        <div key={index} className="p-3 bg-public-bg rounded-lg flex justify-between items-center widget-animate" style={{ animationDelay: `${700 + index * 100}ms` }}>
+                        <div key={index} className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200 flex justify-between items-center shadow-sm hover:shadow-md transition-shadow duration-300 widget-animate" style={{ animationDelay: `${700 + index * 100}ms` }}>
                             <div className="flex items-center gap-3">
-                                {item.type === 'revision' ? <ClockIcon className="w-5 h-5 text-purple-400"/> : <CalendarIcon className="w-5 h-5 text-blue-400"/>}
+                                {item.type === 'revision' ? <ClockIcon className="w-5 h-5 text-purple-500"/> : <CalendarIcon className="w-5 h-5 text-blue-500"/>}
                                 <div>
-                                    <p className="font-semibold text-public-text-primary">{item.type === 'revision' ? 'Deadline Revisi' : 'Proyek Mendatang'}</p>
-                                    <p className="text-sm text-public-text-secondary">{item.projectName}</p>
+                                    <p className="font-semibold text-slate-800">{item.type === 'revision' ? '⏰ Deadline Revisi' : '📅 Proyek Mendatang'}</p>
+                                    <p className="text-sm text-slate-600">{item.projectName}</p>
                                 </div>
                             </div>
-                            <p className="text-sm font-medium text-public-text-primary">{formatDate(item.date)}</p>
+                            <p className="text-sm font-semibold text-blue-600 bg-white px-3 py-1 rounded-lg">{formatDate(item.date)}</p>
                         </div>
-                    )) : <p className="text-center text-public-text-secondary py-8">Tidak ada agenda atau tugas mendesak.</p>}
+                    )) : <p className="text-center text-slate-500 py-8">🎉 Tidak ada agenda atau tugas mendesak.</p>}
                 </div>
             </div>
         </div>
@@ -330,7 +332,7 @@ const ProjectsTab: React.FC<{projects: Project[], onProjectClick: (p: Project) =
 
     return (
         <div className="space-y-4">
-            <div className="flex flex-wrap items-center gap-2 bg-public-surface border border-public-border p-3 rounded-xl">
+            <div className="flex flex-wrap items-center gap-2 bg-white/95 backdrop-blur-xl border border-slate-200 p-3 rounded-2xl shadow-lg">
                 <FilterButton id="all" label="Semua" count={counts.all} />
                 <FilterButton id="upcoming" label="Akan Datang" count={counts.upcoming} />
                 <FilterButton id="ongoing" label="Berjalan" count={counts.ongoing} />
@@ -347,7 +349,7 @@ const ProjectsTab: React.FC<{projects: Project[], onProjectClick: (p: Project) =
                   ? { text: 'Akan Datang', cls: 'bg-blue-100 text-blue-800' }
                   : { text: 'Berjalan', cls: 'bg-yellow-100 text-yellow-800' };
                 return (
-                    <div key={p.id} onClick={() => onProjectClick(p)} className="p-4 bg-public-surface rounded-xl border border-public-border cursor-pointer hover:border-public-accent flex justify-between items-center transition-all duration-200 hover:shadow-md widget-animate" style={{ animationDelay: `${index * 80}ms` }}>
+                    <div key={p.id} onClick={() => onProjectClick(p)} className="p-4 bg-white/95 backdrop-blur-xl rounded-2xl border border-slate-200 cursor-pointer hover:border-blue-500 flex justify-between items-center transition-all duration-300 hover:shadow-xl hover:scale-[1.02] widget-animate" style={{ animationDelay: `${index * 80}ms` }}>
                         <div>
                             <h3 className="font-semibold text-lg text-public-text-primary">{p.projectName}</h3>
                             <p className="text-sm text-public-text-secondary mt-1">{p.clientName} - {formatDate(p.date)}</p>
@@ -369,17 +371,17 @@ const ProjectsTab: React.FC<{projects: Project[], onProjectClick: (p: Project) =
                 );
             })}
 
-            {filtered.length === 0 && <div className="bg-public-surface p-6 rounded-2xl text-center widget-animate"><p className="text-public-text-secondary py-8">Tidak ada proyek pada kategori ini.</p></div>}
+            {filtered.length === 0 && <div className="bg-white/95 backdrop-blur-xl p-6 rounded-3xl border border-slate-200 shadow-xl text-center widget-animate"><span className="text-4xl block mb-3">📂</span><p className="text-slate-500 py-4">Tidak ada proyek pada kategori ini.</p></div>}
         </div>
     );
 };
 
 const PaymentsTab: React.FC<{freelancer: TeamMember, projects: Project[], teamProjectPayments: TeamProjectPayment[], teamPaymentRecords: TeamPaymentRecord[], onSlipView: (record: TeamPaymentRecord) => void}> = ({ freelancer, projects, teamProjectPayments, teamPaymentRecords, onSlipView }) => (
-    <div className="bg-public-surface p-4 sm:p-6 rounded-2xl shadow-lg border border-public-border widget-animate">
-        <h2 className="text-xl font-bold text-public-text-primary mb-4">Riwayat Pembayaran</h2>
+    <div className="bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-slate-200 widget-animate">
+        <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="text-2xl">💳</span> Riwayat Pembayaran</h2>
         <div className="overflow-x-auto"><table className="w-full text-sm">
-            <thead className="bg-public-bg"><tr><th className="p-3 text-left">Proyek</th><th className="p-3 text-left">Tanggal</th><th className="p-3 text-right">Fee</th><th className="p-3 text-center">Status & Aksi</th></tr></thead>
-            <tbody className="divide-y divide-public-border">
+            <thead className="bg-gradient-to-r from-blue-50 to-cyan-50"><tr><th className="p-3 text-left font-semibold text-slate-700">Proyek</th><th className="p-3 text-left font-semibold text-slate-700">Tanggal</th><th className="p-3 text-right font-semibold text-slate-700">Fee</th><th className="p-3 text-center font-semibold text-slate-700">Status & Aksi</th></tr></thead>
+            <tbody className="divide-y divide-slate-200">
                 {teamProjectPayments.filter(p => p.teamMemberId === freelancer.id).map((p, index) => {
                     const isPaid = p.status === 'Paid';
                     const paymentRecord = isPaid ? teamPaymentRecords.find(rec => rec.projectPaymentIds.includes(p.id)) : null;
@@ -404,12 +406,12 @@ const PaymentsTab: React.FC<{freelancer: TeamMember, projects: Project[], teamPr
 
 const PerformanceTab: React.FC<{freelancer: TeamMember}> = ({ freelancer }) => (
     <div className="space-y-6">
-        <div className="bg-public-surface p-6 rounded-2xl shadow-lg border border-public-border text-center widget-animate" style={{ animationDelay: '100ms' }}>
-            <h3 className="text-lg font-bold text-public-text-primary mb-2">Peringkat Kinerja</h3>
-            <div className="flex justify-center items-center gap-2"><StarIcon className="w-8 h-8 text-yellow-400 fill-current" /><p className="text-3xl font-bold text-public-text-primary">{freelancer.rating.toFixed(1)} / 5.0</p></div>
+        <div className="bg-gradient-to-br from-blue-500 to-cyan-500 p-6 rounded-3xl shadow-xl border border-blue-300 text-center widget-animate" style={{ animationDelay: '100ms' }}>
+            <h3 className="text-lg font-bold text-white mb-2">⭐ Peringkat Kinerja</h3>
+            <div className="flex justify-center items-center gap-2"><StarIcon className="w-8 h-8 text-yellow-300 fill-current" /><p className="text-3xl font-bold text-white">{freelancer.rating.toFixed(1)} / 5.0</p></div>
         </div>
-        <div className="bg-public-surface p-6 rounded-2xl shadow-lg border border-public-border widget-animate" style={{ animationDelay: '200ms' }}>
-            <h3 className="text-xl font-bold text-public-text-primary mb-4">Catatan Kinerja dari Admin</h3>
+        <div className="bg-white/95 backdrop-blur-xl p-6 rounded-3xl shadow-xl border border-slate-200 widget-animate" style={{ animationDelay: '200ms' }}>
+            <h3 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="text-2xl">📝</span> Catatan Kinerja dari Admin</h3>
             <div className="space-y-3 max-h-80 overflow-y-auto pr-2">
                 {freelancer.performanceNotes.map((note, index) => (<div key={note.id} className={`p-4 rounded-lg border-l-4 widget-animate ${note.type === PerformanceNoteType.PRAISE ? 'border-green-400 bg-green-500/5' : 'border-yellow-400 bg-yellow-500/5'}`} style={{ animationDelay: `${300 + index * 100}ms`}}>
                     <p className="text-sm text-public-text-primary italic">"{note.note}"</p>
@@ -431,31 +433,31 @@ const SOPsTab: React.FC<{sops: SOP[], assignedProjects: Project[]}> = ({ sops, a
     return (
         <div className="space-y-6">
             {relevantSops.length > 0 && (
-                <div className="bg-public-surface p-4 sm:p-6 rounded-2xl shadow-lg border border-public-border widget-animate" style={{ animationDelay: '100ms' }}>
-                    <h2 className="text-xl font-bold text-public-text-primary mb-4">SOP Relevan untuk Proyek Anda</h2>
+                <div className="bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-slate-200 widget-animate" style={{ animationDelay: '100ms' }}>
+                    <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="text-2xl">⭐</span> SOP Relevan untuk Proyek Anda</h2>
                     <div className="space-y-3">
                         {relevantSops.map(sop => (
-                            <div key={sop.id} onClick={() => setViewingSop(sop)} className="p-3 bg-public-bg rounded-lg flex justify-between items-center cursor-pointer hover:bg-public-bg/70">
+                            <div key={sop.id} onClick={() => setViewingSop(sop)} className="p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-2xl border border-blue-200 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow duration-300">
                                 <div className="flex items-center gap-3">
-                                    <BookOpenIcon className="w-5 h-5 text-public-accent"/>
-                                    <p className="font-semibold text-public-text-primary">{sop.title}</p>
+                                    <BookOpenIcon className="w-5 h-5 text-blue-500"/>
+                                    <p className="font-semibold text-slate-800">{sop.title}</p>
                                 </div>
-                                <span className="text-xs font-medium bg-public-surface text-public-text-secondary px-2 py-1 rounded-full">{sop.category}</span>
+                                <span className="text-xs font-semibold bg-white text-blue-600 px-3 py-1 rounded-full">{sop.category}</span>
                             </div>
                         ))}
                     </div>
                 </div>
             )}
-            <div className="bg-public-surface p-4 sm:p-6 rounded-2xl shadow-lg border border-public-border widget-animate" style={{ animationDelay: '200ms' }}>
-                <h2 className="text-xl font-bold text-public-text-primary mb-4">Semua SOP</h2>
+            <div className="bg-white/95 backdrop-blur-xl p-4 sm:p-6 rounded-3xl shadow-xl border border-slate-200 widget-animate" style={{ animationDelay: '200ms' }}>
+                <h2 className="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2"><span className="text-2xl">📚</span> Semua SOP</h2>
                  <div className="space-y-3">
                     {otherSops.map(sop => (
-                        <div key={sop.id} onClick={() => setViewingSop(sop)} className="p-3 bg-public-bg rounded-lg flex justify-between items-center cursor-pointer hover:bg-public-bg/70">
+                        <div key={sop.id} onClick={() => setViewingSop(sop)} className="p-3 bg-gradient-to-r from-slate-50 to-slate-100 rounded-2xl border border-slate-200 flex justify-between items-center cursor-pointer hover:shadow-md transition-shadow duration-300">
                             <div className="flex items-center gap-3">
-                                <BookOpenIcon className="w-5 h-5 text-public-accent"/>
-                                <p className="font-semibold text-public-text-primary">{sop.title}</p>
+                                <BookOpenIcon className="w-5 h-5 text-slate-600"/>
+                                <p className="font-semibold text-slate-800">{sop.title}</p>
                             </div>
-                            <span className="text-xs font-medium bg-public-surface text-public-text-secondary px-2 py-1 rounded-full">{sop.category}</span>
+                            <span className="text-xs font-semibold bg-white text-slate-600 px-3 py-1 rounded-full">{sop.category}</span>
                         </div>
                     ))}
                 </div>

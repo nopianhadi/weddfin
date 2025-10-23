@@ -1,14 +1,28 @@
 import supabase from '../lib/supabaseClient';
-import { Package, PhysicalItem } from '../types';
+import { Package, PhysicalItem, DurationOption } from '../types';
 
 const TABLE = 'packages';
 
 function normalize(row: any): Package {
+  const legacy = row.duration_prices;
+  let durationOptions: DurationOption[] | undefined = undefined;
+  if (legacy) {
+    if (Array.isArray(legacy)) {
+      durationOptions = legacy as DurationOption[];
+    } else if (typeof legacy === 'object') {
+      const opts: DurationOption[] = [];
+      if (typeof legacy.eightHours === 'number') opts.push({ label: '8 Jam', price: legacy.eightHours, default: true });
+      if (typeof legacy.fullDay === 'number') opts.push({ label: 'Full Day', price: legacy.fullDay, default: opts.length === 0 });
+      durationOptions = opts.length > 0 ? opts : undefined;
+    }
+  }
+
   return {
     id: row.id,
     name: row.name,
     price: Number(row.price || 0),
     category: row.category ?? '',
+    region: row.region ?? undefined,
     physicalItems: (row.physical_items ?? []) as PhysicalItem[],
     digitalItems: (row.digital_items ?? []) as string[],
     processingTime: row.processing_time ?? '',
@@ -17,6 +31,8 @@ function normalize(row: any): Package {
     photographers: row.photographers ?? undefined,
     videographers: row.videographers ?? undefined,
     coverImage: row.cover_image ?? undefined,
+    // Store flexible options in the same duration_prices column for backward compatibility
+    durationOptions,
   };
 }
 
@@ -25,6 +41,7 @@ function denormalize(obj: Partial<Package>): any {
     ...(obj.name !== undefined ? { name: obj.name } : {}),
     ...(obj.price !== undefined ? { price: obj.price } : {}),
     ...(obj.category !== undefined ? { category: obj.category } : {}),
+    ...(obj.region !== undefined ? { region: obj.region } : {}),
     ...(obj.physicalItems !== undefined ? { physical_items: obj.physicalItems } : {}),
     ...(obj.digitalItems !== undefined ? { digital_items: obj.digitalItems } : {}),
     ...(obj.processingTime !== undefined ? { processing_time: obj.processingTime } : {}),
@@ -33,6 +50,7 @@ function denormalize(obj: Partial<Package>): any {
     ...(obj.photographers !== undefined ? { photographers: obj.photographers } : {}),
     ...(obj.videographers !== undefined ? { videographers: obj.videographers } : {}),
     ...(obj.coverImage !== undefined ? { cover_image: obj.coverImage } : {}),
+    ...(obj.durationOptions !== undefined ? { duration_prices: obj.durationOptions } : {}),
   };
 }
 

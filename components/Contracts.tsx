@@ -536,7 +536,7 @@ const Contracts: React.FC<ContractsProps> = ({ contracts, setContracts, clients,
     
     return (
         <div className="space-y-6">
-            <PageHeader title="Kontrak" subtitle="Buat, kelola, dan arsipkan semua kontrak kerja Anda.">
+            <PageHeader title="Kontrak" subtitle="Buat, kelola, dan arsipkan semua kontrak kerja Anda." icon={<FileTextIcon className="w-6 h-6" />}>
                 <div className="flex items-center gap-2">
                     <button onClick={() => setIsInfoModalOpen(true)} className="button-secondary">Pelajari Halaman Ini</button>
                     <button onClick={() => handleOpenModal('add')} className="button-primary inline-flex items-center gap-2">
@@ -545,13 +545,14 @@ const Contracts: React.FC<ContractsProps> = ({ contracts, setContracts, clients,
                 </div>
             </PageHeader>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <StatCard icon={<FileTextIcon className="w-6 h-6"/>} title="Total Kontrak" value={contracts.length.toString()} />
-                <StatCard icon={<ClockIcon className="w-6 h-6"/>} title="Menunggu TTD Klien" value={stats.waitingForClient.toString()} />
-                <StatCard icon={<DollarSignIcon className="w-6 h-6"/>} title="Total Nilai Terkontrak" value={formatDisplayCurrency(stats.totalValue)} />
+            <div className="grid grid-cols-2 gap-6">
+                <StatCard icon={<FileTextIcon className="w-6 h-6"/>} title="Total Kontrak" value={contracts.length.toString()} subtitle="Semua kontrak terdaftar" colorVariant="blue" />
+                <StatCard icon={<ClockIcon className="w-6 h-6"/>} title="Menunggu TTD Klien" value={stats.waitingForClient.toString()} subtitle="Kontrak belum ditandatangani" colorVariant="orange" />
+                <StatCard icon={<DollarSignIcon className="w-6 h-6"/>} title="Total Nilai Terkontrak" value={formatDisplayCurrency(stats.totalValue)} subtitle="Nilai keseluruhan kontrak" colorVariant="green" />
             </div>
             
-            <div className="bg-brand-surface p-4 rounded-xl shadow-lg border border-brand-border">
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-brand-surface p-4 rounded-xl shadow-lg border border-brand-border">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="text-xs text-brand-text-secondary uppercase">
@@ -593,6 +594,102 @@ const Contracts: React.FC<ContractsProps> = ({ contracts, setContracts, clients,
                 </div>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {contracts.length === 0 ? (
+                    <div className="bg-brand-surface p-8 rounded-xl text-center border border-brand-border">
+                        <FileTextIcon className="w-12 h-12 text-brand-text-secondary mx-auto mb-3 opacity-50" />
+                        <p className="text-brand-text-secondary">Belum ada kontrak. Klik tombol "Buat Kontrak" untuk memulai.</p>
+                    </div>
+                ) : (
+                    contracts.map(contract => {
+                        const client = clients.find(c => c.id === contract.clientId);
+                        const project = projects.find(p => p.id === contract.projectId);
+                        const signatureStatus = getSignatureStatus(contract);
+                        return (
+                            <div key={contract.id} className="bg-brand-surface rounded-xl shadow-lg border border-brand-border overflow-hidden">
+                                {/* Header */}
+                                <div className="bg-gradient-to-r from-blue-600/20 to-indigo-600/20 p-4 border-b border-brand-border">
+                                    <div className="flex items-start justify-between mb-2">
+                                        <div className="flex-1">
+                                            <p className="text-xs text-brand-text-secondary uppercase tracking-wide mb-1">No. Kontrak</p>
+                                            <p className="font-mono text-sm font-semibold text-brand-text-light">{contract.contractNumber}</p>
+                                        </div>
+                                        <span className={`px-3 py-1 text-xs font-medium rounded-full flex items-center gap-1 ${signatureStatus.color}`}>
+                                            {signatureStatus.icon}
+                                            {signatureStatus.text}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Content */}
+                                <div className="p-4 space-y-3">
+                                    {/* Client & Project Info */}
+                                    <div>
+                                        <p className="text-xs text-brand-text-secondary mb-1">Klien</p>
+                                        <p className="font-semibold text-brand-text-light">{client?.name || contract.clientName1}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-brand-text-secondary mb-1">Proyek</p>
+                                        <p className="text-sm text-brand-text-primary">{project?.projectName || 'N/A'}</p>
+                                    </div>
+                                    <div>
+                                        <p className="text-xs text-brand-text-secondary mb-1">Tanggal Penandatanganan</p>
+                                        <p className="text-sm text-brand-text-primary">{formatDate(contract.signingDate)}</p>
+                                    </div>
+                                    
+                                    {/* Project Value */}
+                                    {project && (
+                                        <div className="pt-2 border-t border-brand-border">
+                                            <p className="text-xs text-brand-text-secondary mb-1">Nilai Kontrak</p>
+                                            <p className="text-lg font-bold text-brand-accent">{formatDisplayCurrency(project.totalCost)}</p>
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* Actions */}
+                                <div className="p-3 bg-brand-bg border-t border-brand-border">
+                                    <div className="grid grid-cols-4 gap-2">
+                                        <button 
+                                            onClick={() => handleOpenModal('view', contract)} 
+                                            className="flex flex-col items-center justify-center p-2 text-brand-text-secondary hover:text-brand-accent hover:bg-brand-input rounded-lg transition-colors"
+                                            title="Lihat"
+                                        >
+                                            <EyeIcon className="w-5 h-5 mb-1"/>
+                                            <span className="text-xs">Lihat</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleOpenModal('edit', contract)} 
+                                            className="flex flex-col items-center justify-center p-2 text-brand-text-secondary hover:text-blue-400 hover:bg-brand-input rounded-lg transition-colors"
+                                            title="Edit"
+                                        >
+                                            <PencilIcon className="w-5 h-5 mb-1"/>
+                                            <span className="text-xs">Edit</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleOpenQrModal(contract)} 
+                                            className="flex flex-col items-center justify-center p-2 text-brand-text-secondary hover:text-green-400 hover:bg-brand-input rounded-lg transition-colors"
+                                            title="Portal"
+                                        >
+                                            <QrCodeIcon className="w-5 h-5 mb-1"/>
+                                            <span className="text-xs">Portal</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDelete(contract.id)} 
+                                            className="flex flex-col items-center justify-center p-2 text-brand-text-secondary hover:text-red-400 hover:bg-brand-input rounded-lg transition-colors"
+                                            title="Hapus"
+                                        >
+                                            <Trash2Icon className="w-5 h-5 mb-1"/>
+                                            <span className="text-xs">Hapus</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })
+                )}
+            </div>
+
             <Modal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Panduan Halaman Kontrak">
                  <div className="space-y-4 text-sm text-brand-text-primary">
                     <p>Halaman ini adalah pusat arsip digital untuk semua perjanjian kerja Anda.</p>
@@ -607,64 +704,87 @@ const Contracts: React.FC<ContractsProps> = ({ contracts, setContracts, clients,
             
             <Modal isOpen={isFormModalOpen} onClose={handleCloseModal} title={modalMode === 'add' ? 'Buat Kontrak Baru' : 'Edit Kontrak'} size="4xl">
                 <form onSubmit={handleSubmit} className="space-y-4 form-compact form-compact--ios-scale">
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="input-group">
-                            <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="input-field" required>
-                                <option value="">Pilih Klien...</option>
-                                {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                            </select>
-                            <label className="input-label">Klien</label>
-                        </div>
-                        <div className="input-group">
-                            <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)} className="input-field" required disabled={!selectedClientId}>
-                                <option value="">Pilih Proyek...</option>
-                                {availableProjects.map(p => <option key={p.id} value={p.id}>{p.projectName}</option>)}
-                            </select>
-                            <label className="input-label">Proyek</label>
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                        <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                            <FileTextIcon className="w-4 h-4" />
+                            Pilih Klien & Proyek
+                        </h4>
+                        <p className="text-xs text-brand-text-secondary mb-3">
+                            Pilih klien dan proyek yang akan dikontrak. Sistem akan otomatis mengisi detail kontrak berdasarkan data proyek yang dipilih.
+                        </p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <select value={selectedClientId} onChange={e => setSelectedClientId(e.target.value)} className="input-field" required>
+                                    <option value="">Pilih Klien...</option>
+                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                                </select>
+                                <label className="input-label">Klien</label>
+                            </div>
+                            <div className="input-group">
+                                <select value={selectedProjectId} onChange={e => setSelectedProjectId(e.target.value)} className="input-field" required disabled={!selectedClientId}>
+                                    <option value="">Pilih Proyek...</option>
+                                    {availableProjects.map(p => <option key={p.id} value={p.id}>{p.projectName}</option>)}
+                                </select>
+                                <label className="input-label">Proyek</label>
+                            </div>
                         </div>
                     </div>
-                    <p className="text-sm text-brand-text-secondary pt-2">Memilih proyek akan mengisi sebagian besar data di bawah ini secara otomatis.</p>
                     
                     <div className="max-h-[50vh] overflow-y-auto pr-2 space-y-4 pt-4">
-                        <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2">Detail Penandatanganan</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="input-group"><input type="date" name="signingDate" value={formData.signingDate} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Tanggal TTD</label></div>
-                            <div className="input-group"><input type="text" name="signingLocation" value={formData.signingLocation} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Lokasi TTD</label></div>
+                        <div>
+                            <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-2">Detail Penandatanganan</h4>
+                            <p className="text-xs text-brand-text-secondary mb-3">Tentukan kapan dan di mana kontrak ini akan ditandatangani oleh kedua belah pihak.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="input-group"><input type="date" name="signingDate" value={formData.signingDate} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Tanggal TTD</label></div>
+                                <div className="input-group"><input type="text" name="signingLocation" value={formData.signingLocation} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Lokasi TTD</label></div>
+                            </div>
                         </div>
 
-                        <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4">Pihak Klien 1</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div className="input-group"><input type="text" name="clientName1" value={formData.clientName1} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Nama Klien 1</label></div>
-                             <div className="input-group"><input type="text" name="clientPhone1" value={formData.clientPhone1} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Telepon Klien 1</label></div>
+                        <div>
+                            <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4 mb-2">Pihak Klien 1</h4>
+                            <p className="text-xs text-brand-text-secondary mb-3">Informasi lengkap klien pertama yang akan tercantum dalam kontrak resmi.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div className="input-group"><input type="text" name="clientName1" value={formData.clientName1} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Nama Klien 1</label></div>
+                                 <div className="input-group"><input type="text" name="clientPhone1" value={formData.clientPhone1} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Telepon Klien 1</label></div>
+                            </div>
+                            <div className="input-group"><input type="text" name="clientAddress1" value={formData.clientAddress1} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Alamat Klien 1</label></div>
                         </div>
-                        <div className="input-group"><input type="text" name="clientAddress1" value={formData.clientAddress1} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Alamat Klien 1</label></div>
                         
-                        <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4">Pihak Klien 2 (Opsional)</h4>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                             <div className="input-group"><input type="text" name="clientName2" value={formData.clientName2} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Nama Klien 2</label></div>
-                             <div className="input-group"><input type="text" name="clientPhone2" value={formData.clientPhone2} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Telepon Klien 2</label></div>
+                        <div>
+                            <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4 mb-2">Pihak Klien 2 (Opsional)</h4>
+                            <p className="text-xs text-brand-text-secondary mb-3">Jika ada klien kedua (misalnya pasangan dalam acara pernikahan), isi data di sini. Kosongkan jika tidak ada.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                 <div className="input-group"><input type="text" name="clientName2" value={formData.clientName2} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Nama Klien 2</label></div>
+                                 <div className="input-group"><input type="text" name="clientPhone2" value={formData.clientPhone2} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Telepon Klien 2</label></div>
+                            </div>
+                            <div className="input-group"><input type="text" name="clientAddress2" value={formData.clientAddress2} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Alamat Klien 2</label></div>
                         </div>
-                        <div className="input-group"><input type="text" name="clientAddress2" value={formData.clientAddress2} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Alamat Klien 2</label></div>
 
-                         <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4">Ruang Lingkup Pekerjaan</h4>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="input-group"><input type="text" name="shootingDuration" value={formData.shootingDuration} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Durasi Pemotretan</label></div>
-                            <div className="input-group"><input type="text" name="guaranteedPhotos" value={formData.guaranteedPhotos} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Foto Dijamin</label></div>
-                         </div>
-                         <div className="input-group"><input type="text" name="albumDetails" value={formData.albumDetails} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Detail Album</label></div>
-                         <div className="input-group"><input type="text" name="otherItems" value={formData.otherItems} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Item Lainnya</label></div>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="input-group"><input type="text" name="personnelCount" value={formData.personnelCount} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Personel</label></div>
-                            <div className="input-group"><input type="text" name="deliveryTimeframe" value={formData.deliveryTimeframe} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Waktu Pengerjaan</label></div>
+                         <div>
+                            <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4 mb-2">Ruang Lingkup Pekerjaan</h4>
+                            <p className="text-xs text-brand-text-secondary mb-3">Detail layanan yang akan diberikan, termasuk durasi, jumlah foto, album, dan item tambahan lainnya.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="input-group"><input type="text" name="shootingDuration" value={formData.shootingDuration} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Durasi Pemotretan</label></div>
+                                <div className="input-group"><input type="text" name="guaranteedPhotos" value={formData.guaranteedPhotos} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Foto Dijamin</label></div>
+                            </div>
+                            <div className="input-group"><input type="text" name="albumDetails" value={formData.albumDetails} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Detail Album</label></div>
+                            <div className="input-group"><input type="text" name="otherItems" value={formData.otherItems} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Item Lainnya</label></div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="input-group"><input type="text" name="personnelCount" value={formData.personnelCount} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Personel</label></div>
+                                <div className="input-group"><input type="text" name="deliveryTimeframe" value={formData.deliveryTimeframe} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Waktu Pengerjaan</label></div>
+                            </div>
                          </div>
                          
-                         <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4">Pembayaran & Hukum</h4>
-                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="input-group"><input type="date" name="dpDate" value={formData.dpDate} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Tanggal DP</label></div>
-                            <div className="input-group"><input type="date" name="finalPaymentDate" value={formData.finalPaymentDate} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Tanggal Pelunasan</label></div>
+                         <div>
+                            <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4 mb-2">Pembayaran & Hukum</h4>
+                            <p className="text-xs text-brand-text-secondary mb-3">Jadwal pembayaran, kebijakan pembatalan, dan wilayah hukum yang berlaku untuk kontrak ini.</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="input-group"><input type="date" name="dpDate" value={formData.dpDate} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Tanggal DP</label></div>
+                                <div className="input-group"><input type="date" name="finalPaymentDate" value={formData.finalPaymentDate} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Tanggal Pelunasan</label></div>
+                            </div>
+                            <div className="input-group"><textarea name="cancellationPolicy" value={formData.cancellationPolicy} onChange={handleFormChange} className="input-field" placeholder=" " rows={4}></textarea><label className="input-label">Kebijakan Pembatalan</label></div>
+                            <div className="input-group"><input type="text" name="jurisdiction" value={formData.jurisdiction} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Wilayah Hukum</label></div>
                          </div>
-                         <div className="input-group"><textarea name="cancellationPolicy" value={formData.cancellationPolicy} onChange={handleFormChange} className="input-field" placeholder=" " rows={4}></textarea><label className="input-label">Kebijakan Pembatalan</label></div>
-                         <div className="input-group"><input type="text" name="jurisdiction" value={formData.jurisdiction} onChange={handleFormChange} className="input-field" placeholder=" "/><label className="input-label">Wilayah Hukum</label></div>
                     </div>
 
                     <div className="flex justify-end gap-3 pt-6 border-t border-brand-border">

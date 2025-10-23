@@ -62,7 +62,7 @@ export function useAppData() {
 
     try {
       const { listClients } = await import('../services/clients');
-      const clients = await listClients({ limit: 50 });
+      const clients = await listClients(); // Removed limit to fetch all clients
       
       setState(prev => ({
         ...prev,
@@ -118,7 +118,7 @@ export function useAppData() {
 
     try {
       const { listTeamMembers } = await import('../services/teamMembers');
-      const teamMembers = await listTeamMembers({ limit: 50 });
+      const teamMembers = await listTeamMembers(); // Removed limit to fetch all team members
       
       setState(prev => ({
         ...prev,

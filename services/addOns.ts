@@ -8,6 +8,7 @@ function normalize(row: any): AddOn {
     id: row.id,
     name: row.name,
     price: Number(row.price || 0),
+    region: row.region ?? undefined,
   } as AddOn;
 }
 
@@ -15,6 +16,7 @@ function denormalize(obj: Partial<AddOn>): any {
   return {
     ...(obj.name !== undefined ? { name: obj.name } : {}),
     ...(obj.price !== undefined ? { price: obj.price } : {}),
+    ...(obj.region !== undefined ? { region: obj.region } : {}),
   };
 }
 

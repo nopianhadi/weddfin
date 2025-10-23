@@ -37,121 +37,14 @@ const supportsDirectPrint = (() => {
 const PrintButton: React.FC<PrintButtonProps> = ({ areaId, label = 'Cetak', title, showPreview = false, directPrint = false, ...btnProps }) => {
 
   useEffect(() => {
-    const PRINT_WIDTH_MM = 210;
-    const PRINT_HEIGHT_MM = 297;
-    const MARGIN_LEFT_MM = 25, MARGIN_RIGHT_MM = 25, MARGIN_TOP_MM = 20, MARGIN_BOTTOM_MM = 20;
-
-    const mmToPx = (mm: number) => {
-      const el = document.createElement('div');
-      el.style.width = mm + 'mm';
-      el.style.position = 'absolute';
-      el.style.visibility = 'hidden';
-      document.body.appendChild(el);
-      const px = el.getBoundingClientRect().width;
-      document.body.removeChild(el);
-      return px;
-    };
-
-    let wrappedTarget: HTMLElement | null = null;
-    let didWrap = false;
-    let pageCanvasEl: HTMLElement | null = null;
-    let didCreateCanvas = false;
-    let movedWrapperIntoCanvas = false;
-
+    // Avoid mutating React-managed DOM during print. Only toggle a class and clean CSS vars.
     const before = () => {
       document.body.classList.add('printing');
-
-      const area = (areaId ? document.getElementById(areaId) : (document.querySelector('.printable-area') as HTMLElement | null));
-      if (!area) return;
-
-      let wrapper = area.querySelector('#fitWrapper') as HTMLElement | null;
-      if (!wrapper) {
-        // Prefer existing .fit-to-page if present
-        wrapper = area.querySelector('.fit-to-page') as HTMLElement | null;
-      }
-
-      if (!wrapper) {
-        const w = document.createElement('div');
-        w.id = 'fitWrapper';
-        w.className = 'fit-to-page';
-        w.style.width = '160mm'; // 210mm - 25mm - 25mm
-        w.style.transformOrigin = 'top left';
-        // Move all children into the wrapper
-        while (area.firstChild) {
-          w.appendChild(area.firstChild);
-        }
-        area.appendChild(w);
-        wrapper = w;
-        didWrap = true;
-      }
-
-      // Ensure page canvas exists to constrain to one page
-      pageCanvasEl = area.querySelector('#pageCanvas') as HTMLElement | null;
-      if (!pageCanvasEl) {
-        const pc = document.createElement('div');
-        pc.id = 'pageCanvas';
-        pc.className = 'page-canvas';
-        pc.style.width = '160mm';
-        pc.style.height = '257mm';
-        pc.style.overflow = 'hidden';
-        pc.style.margin = '0 auto';
-        area.appendChild(pc);
-        pc.appendChild(wrapper!);
-        pageCanvasEl = pc;
-        didCreateCanvas = true;
-        movedWrapperIntoCanvas = true;
-      }
-
-      wrappedTarget = wrapper;
-
-      const computeFit = () => {
-        try {
-          const printableWidthPx = mmToPx(PRINT_WIDTH_MM - MARGIN_LEFT_MM - MARGIN_RIGHT_MM);
-          const printableHeightPx = mmToPx(PRINT_HEIGHT_MM - MARGIN_TOP_MM - MARGIN_BOTTOM_MM);
-          const rect = wrapper!.getBoundingClientRect();
-          const scaleX = printableWidthPx / rect.width;
-          const scaleY = printableHeightPx / rect.height;
-          const scale = Math.min(1, scaleX, scaleY);
-          wrapper!.setAttribute('data-fit-scale', 'true');
-          document.documentElement.style.setProperty('--fit-scale', `scale(${scale})`);
-        } catch {}
-      };
-
-      // Run after layout flush
-      requestAnimationFrame(() => setTimeout(computeFit, 0));
     };
 
     const after = () => {
-      try {
-        if (wrappedTarget && didWrap) {
-          let area = wrappedTarget.parentElement;
-          // If inside pageCanvas, unwrap out
-          if (area && area.id === 'pageCanvas') {
-            area = area.parentElement;
-          }
-          if (area) {
-            while (wrappedTarget.firstChild) {
-              area.insertBefore(wrappedTarget.firstChild, area.firstChild);
-            }
-          }
-          // Remove wrapper if we created it
-          if (wrappedTarget.parentElement) {
-            wrappedTarget.remove();
-          }
-        }
-        if (pageCanvasEl && didCreateCanvas) {
-          // If wrapper existed before and was moved into canvas, move it back
-          if (!didWrap && movedWrapperIntoCanvas && wrappedTarget && pageCanvasEl.parentElement) {
-            pageCanvasEl.parentElement.insertBefore(wrappedTarget, pageCanvasEl);
-          }
-          pageCanvasEl.remove();
-        }
-      } finally {
-        wrappedTarget = null;
-        didWrap = false;
-        document.body.classList.remove('printing');
-        document.documentElement.style.removeProperty('--fit-scale');
-      }
+      document.body.classList.remove('printing');
+      document.documentElement.style.removeProperty('--fit-scale');
     };
 
     window.addEventListener('beforeprint', before);
@@ -160,6 +53,7 @@ const PrintButton: React.FC<PrintButtonProps> = ({ areaId, label = 'Cetak', titl
       window.removeEventListener('beforeprint', before);
       window.removeEventListener('afterprint', after);
       document.body.classList.remove('printing');
+      document.documentElement.style.removeProperty('--fit-scale');
     };
   }, [areaId]);
 

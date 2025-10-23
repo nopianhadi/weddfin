@@ -3,6 +3,7 @@ import { Client, Project, PaymentStatus, Package, AddOn, TransactionType, Profil
 import PageHeader from './PageHeader';
 import Modal from './Modal';
 import StatCard from './StatCard';
+import StatCardModal from './StatCardModal';
 import SignaturePad from './SignaturePad';
 import DonutChart from './DonutChart';
 import PrintButton from './PrintButton';
@@ -50,6 +51,9 @@ const initialFormState = {
     date: new Date().toISOString().split('T')[0],
     packageId: '',
     selectedAddOnIds: [] as string[],
+    // duration and unit price for packages with durationOptions
+    durationSelection: '',
+    unitPrice: undefined as number | undefined,
     dp: '',
     dpDestinationCardId: '',
     notes: '',
@@ -209,8 +213,9 @@ interface ClientFormProps {
 const ClientForm: React.FC<ClientFormProps> = ({ formData, handleFormChange, handleFormSubmit, handleCloseModal, packages, addOns, userProfile, modalMode, cards, promoCodes }) => {
     
     const priceCalculations = useMemo(() => {
-        const selectedPackage = packages.find(p => p.id === formData.packageId);
-        const packagePrice = selectedPackage?.price || 0;
+            const selectedPackage = packages.find(p => p.id === formData.packageId);
+            // Prefer explicit unitPrice stored in form (selected duration), fallback to package.price
+            const packagePrice = (formData.unitPrice && Number(formData.unitPrice) > 0) ? Number(formData.unitPrice) : (selectedPackage?.price || 0);
 
         const addOnsPrice = addOns
             .filter(addon => formData.selectedAddOnIds.includes(addon.id))
@@ -239,29 +244,69 @@ const ClientForm: React.FC<ClientFormProps> = ({ formData, handleFormChange, han
     
     return (
         <form onSubmit={handleFormSubmit} className="form-compact form-compact--ios-scale">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-2">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 md:gap-x-8 gap-y-2">
                 {/* Left Column: Client & Project Info */}
-                <div className="space-y-4">
-                    <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2">Informasi Klien</h4>
-                    <div className="input-group"><input type="text" id="clientName" name="clientName" value={formData.clientName} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="clientName" className="input-label">Nama Klien</label></div>
-                    <div className="input-group">
-                        <select id="clientType" name="clientType" value={formData.clientType} onChange={handleFormChange} className="input-field" required>
+                <div className="space-y-5">
+                    <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2">Informasi Klien</h4>
+                    <div className="space-y-2">
+                        <label htmlFor="clientName" className="block text-xs text-brand-text-secondary">Nama Klien</label>
+                        <input type="text" id="clientName" name="clientName" value={formData.clientName} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="Masukkan nama klien" required/>
+                        <p className="text-xs text-brand-text-secondary">Nama lengkap klien atau pasangan</p>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="clientType" className="block text-xs text-brand-text-secondary">Jenis Klien</label>
+                        <select id="clientType" name="clientType" value={formData.clientType} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" required>
                             {Object.values(ClientType).map(ct => <option key={ct} value={ct}>{ct}</option>)}
                         </select>
-                        <label htmlFor="clientType" className="input-label">Jenis Klien</label>
+                        <p className="text-xs text-brand-text-secondary">Kategori jenis klien (Direct/Vendor/Referral)</p>
                     </div>
-                    <div className="input-group"><input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="phone" className="input-label">Nomor Telepon</label></div>
-                    <div className="input-group"><input type="tel" id="whatsapp" name="whatsapp" value={formData.whatsapp || ''} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="whatsapp" className="input-label">No. WhatsApp</label></div>
-                    <div className="input-group"><input type="email" id="email" name="email" value={formData.email} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="email" className="input-label">Email</label></div>
-                    <div className="input-group"><input type="text" id="instagram" name="instagram" value={formData.instagram} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="instagram" className="input-label">Instagram (@username)</label></div>
+                    <div className="space-y-2">
+                        <label htmlFor="phone" className="block text-xs text-brand-text-secondary">Nomor Telepon</label>
+                        <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="08123456789" required/>
+                        <p className="text-xs text-brand-text-secondary">Nomor telepon utama yang bisa dihubungi</p>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="whatsapp" className="block text-xs text-brand-text-secondary">No. WhatsApp (Opsional)</label>
+                        <input type="tel" id="whatsapp" name="whatsapp" value={formData.whatsapp || ''} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="08123456789"/>
+                        <p className="text-xs text-brand-text-secondary">Nomor WhatsApp jika berbeda dengan nomor telepon</p>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="email" className="block text-xs text-brand-text-secondary">Email</label>
+                        <input type="email" id="email" name="email" value={formData.email} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="email@example.com" required/>
+                        <p className="text-xs text-brand-text-secondary">Alamat email untuk komunikasi dan invoice</p>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="instagram" className="block text-xs text-brand-text-secondary">Instagram (Opsional)</label>
+                        <input type="text" id="instagram" name="instagram" value={formData.instagram} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="@username"/>
+                        <p className="text-xs text-brand-text-secondary">Username Instagram klien (tanpa @)</p>
+                    </div>
                     
-                    <h4 className="text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4">Informasi Proyek</h4>
-                    <div className="input-group"><input type="text" id="projectName" name="projectName" value={formData.projectName} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="projectName" className="input-label">Nama Proyek</label></div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <div className="input-group"><select id="projectType" name="projectType" value={formData.projectType} onChange={handleFormChange} className="input-field" required><option value="" disabled>Pilih Jenis...</option>{userProfile.projectTypes.map(pt => <option key={pt} value={pt}>{pt}</option>)}</select><label htmlFor="projectType" className="input-label">Jenis Proyek</label></div>
-                        <div className="input-group"><input type="date" id="date" name="date" value={formData.date} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="date" className="input-label">Tanggal Acara</label></div>
+                    <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 pt-4">Informasi Proyek</h4>
+                    <div className="space-y-2">
+                        <label htmlFor="projectName" className="block text-xs text-brand-text-secondary">Nama Proyek</label>
+                        <input type="text" id="projectName" name="projectName" value={formData.projectName} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="Masukkan nama proyek" required/>
+                        <p className="text-xs text-brand-text-secondary">Nama proyek atau acara (contoh: Wedding John & Jane)</p>
                     </div>
-                    <div className="input-group"><input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="location" className="input-label">Lokasi</label></div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <label htmlFor="projectType" className="block text-xs text-brand-text-secondary">Jenis Proyek</label>
+                            <select id="projectType" name="projectType" value={formData.projectType} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" required>
+                                <option value="" disabled>Pilih Jenis...</option>
+                                {userProfile.projectTypes.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                            </select>
+                            <p className="text-xs text-brand-text-secondary">Kategori jenis acara</p>
+                        </div>
+                        <div className="space-y-2">
+                            <label htmlFor="date" className="block text-xs text-brand-text-secondary">Tanggal Acara</label>
+                            <input type="date" id="date" name="date" value={formData.date} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"/>
+                            <p className="text-xs text-brand-text-secondary">Tanggal pelaksanaan acara</p>
+                        </div>
+                    </div>
+                    <div className="space-y-2">
+                        <label htmlFor="location" className="block text-xs text-brand-text-secondary">Lokasi</label>
+                        <input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" placeholder="Lokasi acara"/>
+                        <p className="text-xs text-brand-text-secondary">Lokasi atau venue tempat acara berlangsung</p>
+                    </div>
                 </div>
 
                 {/* Right Column: Financial & Other Info */}
@@ -275,6 +320,23 @@ const ClientForm: React.FC<ClientFormProps> = ({ formData, handleFormChange, han
                         <label htmlFor="packageId" className="input-label">Paket</label>
                         <p className="text-right text-xs text-brand-text-secondary mt-1">Harga Paket: {formatCurrency(priceCalculations.packagePrice)}</p>
                     </div>
+                    {/* Duration selector when package has durationOptions */}
+                    {(() => {
+                        const pkg = packages.find(p => p.id === formData.packageId);
+                        if (pkg && Array.isArray(pkg.durationOptions) && pkg.durationOptions.length > 0) {
+                            return (
+                                <div className="input-group">
+                                    <select id="durationSelection" name="durationSelection" value={formData.durationSelection || ''} onChange={handleFormChange} className="input-field">
+                                        <option value="">Pilih Durasi...</option>
+                                        {pkg.durationOptions.map((opt, idx) => <option key={idx} value={opt.label}>{opt.label} — {formatCurrency(opt.price)}</option>)}
+                                    </select>
+                                    <label htmlFor="durationSelection" className="input-label">Durasi</label>
+                                    {formData.unitPrice && <p className="text-right text-xs text-brand-text-secondary mt-1">Harga Terpilih: {formatCurrency(Number(formData.unitPrice))}</p>}
+                                </div>
+                            );
+                        }
+                        return null;
+                    })()}
                     
                     <div className="input-group">
                         <label className="input-label !static !-top-4 !text-brand-accent">Add-On</label>
@@ -395,13 +457,13 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, projects,
     const totalDue = totalProjectValue - totalPaid;
 
     const InfoStatCard: React.FC<{icon: React.ReactNode, title: string, value: string}> = ({icon, title, value}) => (
-        <div className="bg-brand-bg p-4 rounded-xl flex items-center gap-4 border border-brand-border shadow-sm">
-            <div className="w-12 h-12 rounded-lg flex items-center justify-center bg-brand-surface">
+        <div className="bg-brand-bg p-3 md:p-4 rounded-xl flex flex-col md:flex-row items-center md:items-center gap-2 md:gap-4 border border-brand-border shadow-sm">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-lg flex items-center justify-center bg-brand-surface flex-shrink-0">
                 {icon}
             </div>
-            <div>
-                <p className="text-sm text-brand-text-secondary">{title}</p>
-                <p className="text-lg font-bold text-brand-text-light">{value}</p>
+            <div className="text-center md:text-left">
+                <p className="text-[10px] md:text-sm text-brand-text-secondary">{title}</p>
+                <p className="text-sm md:text-lg font-bold text-brand-text-light truncate">{value}</p>
             </div>
         </div>
     );
@@ -414,18 +476,95 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, projects,
     );
 
     return (
-        <div>
-            <div className="border-b border-brand-border">
+        <div className="flex flex-col h-full">
+            {/* Desktop Tab Navigation - Top */}
+            <div className="hidden md:block border-b border-brand-border">
                 <nav className="-mb-px flex space-x-6 overflow-x-auto">
-                    <button onClick={() => setActiveTab('info')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'info' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><UsersIcon className="w-5 h-5"/> Informasi Klien</button>
-                    <button onClick={() => setActiveTab('payments')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'payments' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><HistoryIcon className="w-5 h-5"/> Riwayat Pembayaran</button>
-                    <button onClick={() => setActiveTab('documents')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${activeTab === 'documents' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><FileTextIcon className="w-5 h-5"/> Kontrak Kerja</button>
+                    <button onClick={() => setActiveTab('info')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'info' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><UsersIcon className="w-5 h-5"/> Informasi Klien</button>
+                    <button onClick={() => setActiveTab('payments')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'payments' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><HistoryIcon className="w-5 h-5"/> Riwayat Pembayaran</button>
+                    <button onClick={() => setActiveTab('documents')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${activeTab === 'documents' ? 'border-brand-accent text-brand-accent' : 'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><FileTextIcon className="w-5 h-5"/> Kontrak Kerja</button>
                 </nav>
             </div>
-            <div className="pt-5 max-h-[65vh] overflow-y-auto pr-2">
+
+            {/* Mobile Tab Navigation - Top Pills */}
+            <div className="md:hidden mb-3">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                    <button 
+                        onClick={() => setActiveTab('info')} 
+                        className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                            activeTab === 'info' 
+                                ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                        }`}
+                    >
+                        <UsersIcon className="w-4 h-4"/> 
+                        <span>Info Klien</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('payments')} 
+                        className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                            activeTab === 'payments' 
+                                ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                        }`}
+                    >
+                        <HistoryIcon className="w-4 h-4"/> 
+                        <span>Pembayaran</span>
+                    </button>
+                    <button 
+                        onClick={() => setActiveTab('documents')} 
+                        className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                            activeTab === 'documents' 
+                                ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                        }`}
+                    >
+                        <FileTextIcon className="w-4 h-4"/> 
+                        <span>Kontrak</span>
+                    </button>
+                </div>
+            </div>
+
+            <div className="pt-0 md:pt-5 max-h-[65vh] md:max-h-[65vh] overflow-y-auto pr-2 pb-4">
                 {activeTab === 'info' && (
-                     <div className="space-y-8">
-                        <div>
+                     <div className="space-y-6 md:space-y-8 tab-content-mobile">
+                        {/* Mobile: Card-based info display */}
+                        <div className="md:hidden bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-sm">
+                            <div className="space-y-3">
+                                <div className="pb-2 border-b border-brand-border/50">
+                                    <p className="text-xs text-brand-text-secondary mb-1">Nama Lengkap</p>
+                                    <p className="text-sm font-semibold text-brand-text-light">{client.name}</p>
+                                </div>
+                                <div className="pb-2 border-b border-brand-border/50">
+                                    <p className="text-xs text-brand-text-secondary mb-1">Jenis Klien</p>
+                                    <p className="text-sm font-semibold text-brand-text-light">{client.clientType}</p>
+                                </div>
+                                <div className="pb-2 border-b border-brand-border/50">
+                                    <p className="text-xs text-brand-text-secondary mb-1">Email</p>
+                                    <p className="text-sm font-semibold text-brand-text-light break-all">{client.email}</p>
+                                </div>
+                                <div className="pb-2 border-b border-brand-border/50">
+                                    <p className="text-xs text-brand-text-secondary mb-1">Telepon</p>
+                                    <a href={`https://wa.me/${cleanPhoneNumber(client.whatsapp || client.phone)}`} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-400 hover:underline active:text-blue-300">{client.whatsapp || client.phone}</a>
+                                </div>
+                                <div className="pb-2 border-b border-brand-border/50">
+                                    <p className="text-xs text-brand-text-secondary mb-1">No. WhatsApp</p>
+                                    <a href={`https://wa.me/${cleanPhoneNumber(client.whatsapp || client.phone)}`} target="_blank" rel="noopener noreferrer" className="text-sm font-semibold text-blue-400 hover:underline active:text-blue-300">{client.whatsapp || client.phone}</a>
+                                </div>
+                                <div className="pb-2 border-b border-brand-border/50">
+                                    <p className="text-xs text-brand-text-secondary mb-1">Instagram</p>
+                                    <p className="text-sm font-semibold text-brand-text-light">{client.instagram || '-'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-xs text-brand-text-secondary mb-1">Klien Sejak</p>
+                                    <p className="text-sm font-semibold text-brand-text-light">{new Date(client.since).toLocaleDateString('id-ID')}</p>
+                                </div>
+                            </div>
+                            <button onClick={() => onSharePortal(client)} className="mt-4 w-full button-primary inline-flex items-center justify-center gap-2 text-sm active:scale-95 transition-transform"><Share2Icon className="w-4 h-4" /> Bagikan Portal Klien</button>
+                        </div>
+
+                        {/* Desktop: Table-based info display */}
+                        <div className="hidden md:block">
                             <dl>
                                 <DetailRow label="Nama Lengkap">{client.name}</DetailRow>
                                 <DetailRow label="Jenis Klien">{client.clientType}</DetailRow>
@@ -439,57 +578,145 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, projects,
                         </div>
                         
                         <div>
-                            <h4 className="text-base font-semibold text-brand-text-light mb-4">Ringkasan Keuangan Klien</h4>
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <InfoStatCard icon={<FolderKanbanIcon className="w-6 h-6 text-indigo-400"/>} title="Jumlah Proyek" value={totalProjects.toString()} />
-                                <InfoStatCard icon={<DollarSignIcon className="w-6 h-6 text-blue-400"/>} title="Total Nilai Proyek" value={formatCurrency(totalProjectValue)} />
-                                <InfoStatCard icon={<TrendingUpIcon className="w-6 h-6 text-green-400"/>} title="Total Telah Dibayar" value={formatCurrency(totalPaid)} />
-                                <InfoStatCard icon={<TrendingDownIcon className="w-6 h-6 text-red-400"/>} title="Total Sisa Tagihan" value={formatCurrency(totalDue)} />
+                            <h4 className="text-sm md:text-base font-semibold text-brand-text-light mb-1">Ringkasan Keuangan Klien</h4>
+                            <p className="text-xs text-brand-text-secondary mb-3 md:mb-4">Total nilai proyek, pembayaran, dan sisa tagihan klien ini</p>
+                            <div className="grid grid-cols-2 gap-3 md:gap-4">
+                                <InfoStatCard icon={<FolderKanbanIcon className="w-5 h-5 md:w-6 md:h-6 text-indigo-400"/>} title="Jumlah Proyek" value={totalProjects.toString()} />
+                                <InfoStatCard icon={<DollarSignIcon className="w-5 h-5 md:w-6 md:h-6 text-blue-400"/>} title="Total Nilai Proyek" value={formatCurrency(totalProjectValue)} />
+                                <InfoStatCard icon={<TrendingUpIcon className="w-5 h-5 md:w-6 md:h-6 text-green-400"/>} title="Total Telah Dibayar" value={formatCurrency(totalPaid)} />
+                                <InfoStatCard icon={<TrendingDownIcon className="w-5 h-5 md:w-6 md:h-6 text-red-400"/>} title="Total Sisa Tagihan" value={formatCurrency(totalDue)} />
                             </div>
                         </div>
                     </div>
                 )}
                 {activeTab === 'payments' && (
-                     <div className="space-y-8">
+                     <div className="space-y-6 md:space-y-8 tab-content-mobile">
                         {clientProjects.map(p => {
                             const transactionsForProject = clientTransactions.filter(t => t.projectId === p.id);
                             const remainingBalance = p.totalCost - p.amountPaid;
                             return (
                                 <div key={p.id}>
-                                    <h4 className="text-base font-semibold text-brand-text-light mb-2">Ringkasan Proyek & Invoice</h4>
-                                    <div className="p-4 bg-brand-bg rounded-lg flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                    <h4 className="text-sm md:text-base font-semibold text-brand-text-light mb-1">Ringkasan Proyek & Invoice</h4>
+                                    <p className="text-xs text-brand-text-secondary mb-2">Informasi biaya dan status pembayaran proyek</p>
+                                    
+                                    {/* Mobile: Enhanced card layout */}
+                                    <div className="md:hidden bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-sm space-y-4">
                                         <div>
-                                            <p className="font-semibold text-brand-text-light">{p.projectName}</p>
-                                            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs mt-1">
-                                                <span>Total: <span className="font-medium text-brand-text-primary">{formatCurrency(p.totalCost)}</span></span>
-                                                <span>Terbayar: <span className="font-medium text-green-400">{formatCurrency(p.amountPaid)}</span></span>
-                                                <span>Sisa: <span className="font-medium text-red-400">{formatCurrency(remainingBalance)}</span></span>
+                                            <p className="font-semibold text-brand-text-light text-base mb-3">{p.projectName}</p>
+                                            <div className="grid grid-cols-3 gap-2">
+                                                <div className="bg-brand-bg rounded-lg p-2.5 text-center">
+                                                    <p className="text-[10px] text-brand-text-secondary mb-1">Total</p>
+                                                    <p className="text-xs font-bold text-brand-text-primary">{formatCurrency(p.totalCost)}</p>
+                                                </div>
+                                                <div className="bg-brand-bg rounded-lg p-2.5 text-center">
+                                                    <p className="text-[10px] text-brand-text-secondary mb-1">Terbayar</p>
+                                                    <p className="text-xs font-bold text-green-400">{formatCurrency(p.amountPaid)}</p>
+                                                </div>
+                                                <div className="bg-brand-bg rounded-lg p-2.5 text-center">
+                                                    <p className="text-[10px] text-brand-text-secondary mb-1">Sisa</p>
+                                                    <p className="text-xs font-bold text-red-400">{formatCurrency(remainingBalance)}</p>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+                                        <div className="flex flex-col gap-2">
                                             {p.dpProofUrl && (
-                                                <a href={p.dpProofUrl} target="_blank" rel="noopener noreferrer" className="button-secondary text-sm inline-flex items-center gap-2">
+                                                <a href={p.dpProofUrl} target="_blank" rel="noopener noreferrer" className="button-secondary text-xs inline-flex items-center justify-center gap-2 active:scale-95 transition-transform">
                                                     <CreditCardIcon className="w-4 h-4" /> Lihat Bukti DP
                                                 </a>
                                             )}
-                                            <button onClick={() => onViewInvoice(p)} className="button-secondary text-sm inline-flex items-center gap-2">
+                                            <button onClick={() => onViewInvoice(p)} className="button-primary text-xs inline-flex items-center justify-center gap-2 active:scale-95 transition-transform">
                                                 <FileTextIcon className="w-4 h-4" /> Lihat Invoice
                                             </button>
-                                            <button onClick={() => onDeleteProject(p.id)} className="button-secondary text-sm inline-flex items-center gap-2 !text-red-300 hover:!text-red-400">
+                                            <button onClick={() => onDeleteProject(p.id)} className="button-secondary text-xs inline-flex items-center justify-center gap-2 !text-red-300 hover:!text-red-400 active:scale-95 transition-transform">
                                                 <Trash2Icon className="w-4 h-4" /> Hapus Proyek
                                             </button>
                                         </div>
                                     </div>
 
-                                    <h4 className="text-base font-semibold text-brand-text-light mt-4 mb-2">Detail Transaksi Pembayaran</h4>
-                                    <div className="border border-brand-border rounded-lg overflow-x-auto">
+                                    {/* Desktop: Original layout */}
+                                    <div className="hidden md:block p-4 bg-brand-bg rounded-lg">
+                                        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+                                            <div>
+                                                <p className="font-semibold text-brand-text-light">{p.projectName}</p>
+                                                <div className="flex items-center flex-wrap gap-x-4 gap-y-1 text-xs mt-1">
+                                                    <span>Total: <span className="font-medium text-brand-text-primary">{formatCurrency(p.totalCost)}</span></span>
+                                                    <span>Terbayar: <span className="font-medium text-green-400">{formatCurrency(p.amountPaid)}</span></span>
+                                                    <span>Sisa: <span className="font-medium text-red-400">{formatCurrency(remainingBalance)}</span></span>
+                                                </div>
+                                            </div>
+                                            <div className="flex items-center gap-2 flex-shrink-0 self-start sm:self-center">
+                                                {p.dpProofUrl && (
+                                                    <a href={p.dpProofUrl} target="_blank" rel="noopener noreferrer" className="button-secondary text-sm inline-flex items-center gap-2">
+                                                        <CreditCardIcon className="w-4 h-4" /> Lihat Bukti DP
+                                                    </a>
+                                                )}
+                                                <button onClick={() => onViewInvoice(p)} className="button-secondary text-sm inline-flex items-center gap-2">
+                                                    <FileTextIcon className="w-4 h-4" /> Lihat Invoice
+                                                </button>
+                                                <button onClick={() => onDeleteProject(p.id)} className="button-secondary text-sm inline-flex items-center gap-2 !text-red-300 hover:!text-red-400">
+                                                    <Trash2Icon className="w-4 h-4" /> Hapus Proyek
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <h4 className="text-sm md:text-base font-semibold text-brand-text-light mt-4 mb-1">Detail Transaksi Pembayaran</h4>
+                                    <p className="text-xs text-brand-text-secondary mb-2">Riwayat semua pembayaran yang telah dilakukan untuk proyek ini</p>
+                                    {/* Mobile cards */}
+                                    <div className="md:hidden space-y-2">
+                                        {transactionsForProject.length > 0 ? transactionsForProject.map(t => {
+                                            const isTransport = 
+                                                (t.category && t.category.toLowerCase().includes('transport')) || 
+                                                (t.description && t.description.toLowerCase().includes('transport'));
+                                            return (
+                                            <div key={t.id} className="rounded-xl bg-brand-surface border border-brand-border p-3 shadow-sm flex items-start justify-between active:scale-[0.98] transition-transform">
+                                                <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1 flex-wrap">
+                                                        <p className="text-sm font-medium text-brand-text-light">{t.description}</p>
+                                                        {isTransport && (
+                                                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/20 text-blue-400">🚗 TRANSPORT</span>
+                                                        )}
+                                                    </div>
+                                                    <p className="text-[11px] text-brand-text-secondary">{new Date(t.date).toLocaleDateString('id-ID')}</p>
+                                                    <p className="text-[10px] text-brand-text-secondary mt-0.5">{t.category || 'Tidak ada kategori'}</p>
+                                                </div>
+                                                <div className="text-right ml-3">
+                                                    <p className={`text-sm font-bold mb-1.5 ${t.type === TransactionType.INCOME ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(t.amount)}</p>
+                                                    <button onClick={() => onViewReceipt(t)} className="button-secondary !text-[10px] !px-2 !py-1 active:scale-95 transition-transform">Bukti</button>
+                                                </div>
+                                            </div>
+                                        )}) : (
+                                            <div className="text-center p-8 bg-brand-surface rounded-xl border border-brand-border">
+                                                <p className="text-sm text-brand-text-secondary">Belum ada pembayaran untuk proyek ini.</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    {/* Desktop table */}
+                                    <div className="hidden md:block border border-brand-border rounded-lg overflow-x-auto">
                                         <table className="w-full text-sm">
-                                            <thead className="bg-brand-bg"><tr className="bg-brand-bg"><th className="p-3 text-left font-medium text-brand-text-secondary">Tanggal</th><th className="p-3 text-left font-medium text-brand-text-secondary">Deskripsi</th><th className="p-3 text-right font-medium text-brand-text-secondary">Jumlah</th><th className="p-3 text-center font-medium text-brand-text-secondary">Aksi</th></tr></thead>
+                                            <thead className="bg-brand-bg"><tr className="bg-brand-bg"><th className="p-3 text-left font-medium text-brand-text-secondary">Tanggal</th><th className="p-3 text-left font-medium text-brand-text-secondary">Deskripsi</th><th className="p-3 text-left font-medium text-brand-text-secondary">Kategori</th><th className="p-3 text-right font-medium text-brand-text-secondary">Jumlah</th><th className="p-3 text-center font-medium text-brand-text-secondary">Aksi</th></tr></thead>
                                             <tbody>
-                                                {transactionsForProject.length > 0 ? transactionsForProject.map(t => (
-                                                    <tr key={t.id} className="border-t border-brand-border"><td className="p-3">{new Date(t.date).toLocaleDateString('id-ID')}</td><td className="p-3">{t.description}</td><td className={`p-3 text-right font-semibold ${t.type === TransactionType.INCOME ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(t.amount)}</td><td className="p-3 text-center"><button onClick={() => onViewReceipt(t)} className="p-1 text-brand-text-secondary hover:text-brand-accent"><PrinterIcon className="w-5 h-5"/></button></td></tr>
-                                                )) : (
-                                                    <tr><td colSpan={4} className="text-center p-4 text-brand-text-secondary">Belum ada pembayaran untuk proyek ini.</td></tr>
+                                                {transactionsForProject.length > 0 ? transactionsForProject.map(t => {
+                                                    const isTransport = 
+                                                        (t.category && t.category.toLowerCase().includes('transport')) || 
+                                                        (t.description && t.description.toLowerCase().includes('transport'));
+                                                    return (
+                                                    <tr key={t.id} className="border-t border-brand-border hover:bg-brand-bg/50 transition-colors">
+                                                        <td className="p-3 text-brand-text-secondary">{new Date(t.date).toLocaleDateString('id-ID')}</td>
+                                                        <td className="p-3">
+                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                <span className="text-brand-text-light">{t.description}</span>
+                                                                {isTransport && (
+                                                                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 whitespace-nowrap">🚗 TRANSPORT</span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="p-3 text-brand-text-secondary text-xs">{t.category || '-'}</td>
+                                                        <td className={`p-3 text-right font-semibold ${t.type === TransactionType.INCOME ? 'text-green-400' : 'text-red-400'}`}>{formatCurrency(t.amount)}</td>
+                                                        <td className="p-3 text-center"><button onClick={() => onViewReceipt(t)} className="p-1 text-brand-text-secondary hover:text-brand-accent transition-colors"><PrinterIcon className="w-5 h-5"/></button></td>
+                                                    </tr>
+                                                )}) : (
+                                                    <tr><td colSpan={5} className="text-center p-4 text-brand-text-secondary">Belum ada pembayaran untuk proyek ini.</td></tr>
                                                 )}
                                             </tbody>
                                         </table>
@@ -497,17 +724,34 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, projects,
 
                                     {remainingBalance > 0 && (
                                         <>
-                                            <h4 className="text-base font-semibold text-brand-text-light mt-4 mb-2">Catat Pembayaran Baru</h4>
-                                            <div className="p-4 bg-brand-bg rounded-lg flex flex-col sm:flex-row items-center gap-4">
-                                                <div className="input-group flex-grow w-full !mt-0">
-                                                    <input type="number" id={`amount-${p.id}`} value={newPayments[p.id]?.amount || ''} onChange={(e) => handleNewPaymentChange(p.id, 'amount', e.target.value)} max={remainingBalance} className="input-field" placeholder=" "/>
-                                                    <label htmlFor={`amount-${p.id}`} className="input-label">Jumlah Pembayaran (Maks: {formatCurrency(remainingBalance)})</label>
+                                            <h4 className="text-sm md:text-base font-semibold text-brand-text-light mt-5 mb-3">Catat Pembayaran Baru</h4>
+                                            {/* Mobile: Stacked card layout */}
+                                            <div className="md:hidden bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-sm">
+                                                <div className="space-y-4">
+                                                    <div className="input-group !mt-0">
+                                                        <input type="number" id={`amount-mobile-${p.id}`} value={newPayments[p.id]?.amount || ''} onChange={(e) => handleNewPaymentChange(p.id, 'amount', e.target.value)} max={remainingBalance} className="input-field" placeholder=" "/>
+                                                        <label htmlFor={`amount-mobile-${p.id}`} className="input-label text-xs">Jumlah (Maks: {formatCurrency(remainingBalance)})</label>
+                                                    </div>
+                                                    <div className="input-group !mt-0">
+                                                         <select id={`dest-mobile-${p.id}`} value={newPayments[p.id]?.destinationCardId || ''} onChange={(e) => handleNewPaymentChange(p.id, 'destinationCardId', e.target.value)} className="input-field"><option value="">Pilih Tujuan...</option>{cards.map(c=><option key={c.id} value={c.id}>{c.bankName} {c.lastFourDigits !== 'CASH' ? `**** ${c.lastFourDigits}` : '(Tunai)'}</option>)}</select>
+                                                         <label htmlFor={`dest-mobile-${p.id}`} className="input-label text-xs">Tujuan Pembayaran</label>
+                                                    </div>
+                                                    <button onClick={() => handleNewPaymentSubmit(p.id)} className="button-primary w-full active:scale-95 transition-transform">CATAT PEMBAYARAN</button>
                                                 </div>
-                                                <div className="input-group w-full sm:w-64 !mt-0">
-                                                     <select id={`dest-${p.id}`} value={newPayments[p.id]?.destinationCardId || ''} onChange={(e) => handleNewPaymentChange(p.id, 'destinationCardId', e.target.value)} className="input-field"><option value="">Pilih Tujuan...</option>{cards.map(c=><option key={c.id} value={c.id}>{c.bankName} {c.lastFourDigits !== 'CASH' ? `**** ${c.lastFourDigits}` : '(Tunai)'}</option>)}</select>
-                                                     <label htmlFor={`dest-${p.id}`} className="input-label">Tujuan Pembayaran</label>
+                                            </div>
+                                            {/* Desktop: Original layout */}
+                                            <div className="hidden md:block p-4 bg-brand-bg rounded-lg">
+                                                <div className="flex flex-col sm:flex-row items-center gap-4">
+                                                    <div className="input-group flex-grow w-full !mt-0">
+                                                        <input type="number" id={`amount-${p.id}`} value={newPayments[p.id]?.amount || ''} onChange={(e) => handleNewPaymentChange(p.id, 'amount', e.target.value)} max={remainingBalance} className="input-field" placeholder=" "/>
+                                                        <label htmlFor={`amount-${p.id}`} className="input-label">Jumlah Pembayaran (Maks: {formatCurrency(remainingBalance)})</label>
+                                                    </div>
+                                                    <div className="input-group w-full sm:w-64 !mt-0">
+                                                         <select id={`dest-${p.id}`} value={newPayments[p.id]?.destinationCardId || ''} onChange={(e) => handleNewPaymentChange(p.id, 'destinationCardId', e.target.value)} className="input-field"><option value="">Pilih Tujuan...</option>{cards.map(c=><option key={c.id} value={c.id}>{c.bankName} {c.lastFourDigits !== 'CASH' ? `**** ${c.lastFourDigits}` : '(Tunai)'}</option>)}</select>
+                                                         <label htmlFor={`dest-${p.id}`} className="input-label">Tujuan Pembayaran</label>
+                                                    </div>
+                                                    <button onClick={() => handleNewPaymentSubmit(p.id)} className="button-primary h-fit w-full sm:w-auto flex-shrink-0">CATAT</button>
                                                 </div>
-                                                <button onClick={() => handleNewPaymentSubmit(p.id)} className="button-primary h-fit w-full sm:w-auto flex-shrink-0">CATAT</button>
                                             </div>
                                         </>
                                     )}
@@ -517,9 +761,27 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, projects,
                     </div>
                 )}
                 {activeTab === 'documents' && (
-                    <div className="space-y-4">
-                        <div className="flex justify-between items-center">
-                            <h4 className="text-base font-semibold text-brand-text-light">Daftar Kontrak Kerja</h4>
+                    <div className="space-y-4 tab-content-mobile">
+                        {/* Mobile: Header with stacked button */}
+                        <div className="md:hidden space-y-3">
+                            <div>
+                                <h4 className="text-sm font-semibold text-brand-text-light mb-1">Daftar Kontrak Kerja</h4>
+                                <p className="text-xs text-brand-text-secondary">Semua kontrak yang terkait dengan klien ini</p>
+                            </div>
+                            <button 
+                                onClick={() => handleNavigation(ViewType.CONTRACTS, { type: 'CREATE_CONTRACT_FOR_CLIENT', id: client.id })} 
+                                className="button-primary w-full inline-flex items-center justify-center gap-2 text-sm active:scale-95 transition-transform"
+                            >
+                                <PlusIcon className="w-4 h-4"/> BUAT KONTRAK BARU
+                            </button>
+                        </div>
+
+                        {/* Desktop: Header with side-by-side button */}
+                        <div className="hidden md:flex justify-between items-start">
+                            <div>
+                                <h4 className="text-base font-semibold text-brand-text-light mb-1">Daftar Kontrak Kerja</h4>
+                                <p className="text-xs text-brand-text-secondary">Semua kontrak yang terkait dengan klien ini</p>
+                            </div>
                             <button 
                                 onClick={() => handleNavigation(ViewType.CONTRACTS, { type: 'CREATE_CONTRACT_FOR_CLIENT', id: client.id })} 
                                 className="button-primary inline-flex items-center gap-2 text-sm"
@@ -533,24 +795,43 @@ const ClientDetailModal: React.FC<ClientDetailModalProps> = ({ client, projects,
                                 contracts.filter(c => c.clientId === client.id).map(contract => {
                                     const project = projects.find(p => p.id === contract.projectId);
                                     return (
-                                        <div key={contract.id} className="p-4 bg-brand-bg rounded-lg flex justify-between items-center">
-                                            <div>
-                                                <p className="font-semibold text-brand-text-light">{contract.contractNumber}</p>
-                                                <p className="text-xs text-brand-text-secondary mt-1">Proyek: {project?.projectName || 'N/A'}</p>
+                                        <div key={contract.id}>
+                                            {/* Mobile: Card layout */}
+                                            <div className="md:hidden bg-brand-surface rounded-2xl p-4 border border-brand-border shadow-sm space-y-3">
+                                                <div>
+                                                    <p className="font-semibold text-brand-text-light text-sm">{contract.contractNumber}</p>
+                                                    <p className="text-xs text-brand-text-secondary mt-1.5">Proyek: {project?.projectName || 'N/A'}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleNavigation(ViewType.CONTRACTS, { type: 'VIEW_CONTRACT', id: contract.id })}
+                                                    className="button-primary w-full text-sm active:scale-95 transition-transform"
+                                                >
+                                                    Lihat Detail
+                                                </button>
                                             </div>
-                                            <button 
-                                                onClick={() => handleNavigation(ViewType.CONTRACTS, { type: 'VIEW_CONTRACT', id: contract.id })}
-                                                className="button-secondary text-sm"
-                                            >
-                                                Lihat Detail
-                                            </button>
+                                            {/* Desktop: Original layout */}
+                                            <div className="hidden md:flex p-4 bg-brand-bg rounded-lg justify-between items-center">
+                                                <div>
+                                                    <p className="font-semibold text-brand-text-light">{contract.contractNumber}</p>
+                                                    <p className="text-xs text-brand-text-secondary mt-1">Proyek: {project?.projectName || 'N/A'}</p>
+                                                </div>
+                                                <button 
+                                                    onClick={() => handleNavigation(ViewType.CONTRACTS, { type: 'VIEW_CONTRACT', id: contract.id })}
+                                                    className="button-secondary text-sm"
+                                                >
+                                                    Lihat Detail
+                                                </button>
+                                            </div>
                                         </div>
                                     );
                                 })
                             ) : (
-                                <p className="text-center text-sm text-brand-text-secondary py-8">
-                                    Belum ada kontrak untuk klien ini.
-                                </p>
+                                <div className="text-center py-12 bg-brand-surface rounded-2xl border border-brand-border">
+                                    <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-brand-bg border-2 border-dashed border-brand-border flex items-center justify-center">
+                                        <FileTextIcon className="w-8 h-8 text-brand-text-secondary" />
+                                    </div>
+                                    <p className="text-sm text-brand-text-secondary">Belum ada kontrak untuk klien ini.</p>
+                                </div>
                             )}
                         </div>
                     </div>
@@ -590,25 +871,137 @@ interface ClientsProps {
 }
 
 const NewClientsChart: React.FC<{ data: { name: string; count: number }[] }> = ({ data }) => {
+    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const maxCount = Math.max(...data.map(d => d.count), 1);
+    const hasData = data.some(d => d.count > 0);
+
+    if (!hasData) {
+        return (
+            <div className="bg-brand-surface p-6 rounded-2xl shadow-lg h-full border border-brand-border">
+                <h3 className="font-bold text-lg text-gradient mb-6">Akusisi Klien Baru ({new Date().getFullYear()})</h3>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-brand-bg border-2 border-dashed border-brand-border flex items-center justify-center mb-3">
+                        <svg className="w-10 h-10 text-brand-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                    </div>
+                    <p className="text-sm font-medium text-brand-text-light mb-1">Belum Ada Klien Baru</p>
+                    <p className="text-xs text-brand-text-secondary">Data klien baru akan muncul di sini</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Generate gradient colors for each bar
+    const getBarColor = (index: number) => {
+        const colors = [
+            { from: 'from-blue-500', to: 'to-cyan-400', solid: 'bg-blue-500', glow: 'shadow-blue-500/50' },
+            { from: 'from-purple-500', to: 'to-pink-400', solid: 'bg-purple-500', glow: 'shadow-purple-500/50' },
+            { from: 'from-green-500', to: 'to-emerald-400', solid: 'bg-green-500', glow: 'shadow-green-500/50' },
+            { from: 'from-orange-500', to: 'to-amber-400', solid: 'bg-orange-500', glow: 'shadow-orange-500/50' },
+            { from: 'from-pink-500', to: 'to-rose-400', solid: 'bg-pink-500', glow: 'shadow-pink-500/50' },
+            { from: 'from-indigo-500', to: 'to-blue-400', solid: 'bg-indigo-500', glow: 'shadow-indigo-500/50' },
+            { from: 'from-teal-500', to: 'to-cyan-400', solid: 'bg-teal-500', glow: 'shadow-teal-500/50' },
+            { from: 'from-red-500', to: 'to-orange-400', solid: 'bg-red-500', glow: 'shadow-red-500/50' },
+            { from: 'from-violet-500', to: 'to-purple-400', solid: 'bg-violet-500', glow: 'shadow-violet-500/50' },
+            { from: 'from-cyan-500', to: 'to-blue-400', solid: 'bg-cyan-500', glow: 'shadow-cyan-500/50' },
+            { from: 'from-amber-500', to: 'to-yellow-400', solid: 'bg-amber-500', glow: 'shadow-amber-500/50' },
+            { from: 'from-emerald-500', to: 'to-green-400', solid: 'bg-emerald-500', glow: 'shadow-emerald-500/50' },
+        ];
+        return colors[index % colors.length];
+    };
 
     return (
         <div className="bg-brand-surface p-6 rounded-2xl shadow-lg h-full border border-brand-border">
-            <h3 className="font-bold text-lg text-gradient mb-6">Akusisi Klien Baru ({new Date().getFullYear()})</h3>
-            <div className="h-48 flex justify-between items-end gap-2">
-                {data.map(item => {
-                    const height = Math.max((item.count / maxCount) * 100, 2);
+            <h3 className="font-bold text-lg text-gradient mb-2">Akusisi Klien Baru ({new Date().getFullYear()})</h3>
+            <p className="text-xs text-brand-text-secondary mb-6">Jumlah klien baru per bulan</p>
+            <div className="h-52 flex justify-between items-end gap-2 relative bg-gradient-to-t from-brand-bg/50 to-transparent rounded-xl p-4">
+                {/* Grid lines */}
+                <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none">
+                    {[...Array(5)].map((_, i) => (
+                        <div key={i} className="border-t border-brand-border/20"></div>
+                    ))}
+                </div>
+                
+                {data.map((item, index) => {
+                    const height = Math.max((item.count / maxCount) * 100, 5);
+                    const isHovered = hoveredIndex === index;
+                    const barColor = getBarColor(index);
+                    
                     return (
-                        <div key={item.name} className="flex-1 flex flex-col items-center justify-end h-full group relative">
-                             <div className="absolute -top-6 text-xs bg-brand-accent text-white font-bold py-1 px-2 rounded-md mb-1 opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">{item.count} Klien</div>
+                        <div 
+                            key={item.name} 
+                            className="flex-1 flex flex-col items-center justify-end h-full relative cursor-pointer z-10"
+                            onMouseEnter={() => setHoveredIndex(index)}
+                            onMouseLeave={() => setHoveredIndex(null)}
+                        >
+                            {/* Tooltip */}
+                            {isHovered && (
+                                <div className="absolute -top-16 left-1/2 -translate-x-1/2 bg-gradient-to-br from-brand-surface to-brand-bg border-2 border-brand-accent/40 text-white font-semibold py-2.5 px-4 rounded-xl shadow-2xl text-xs whitespace-nowrap z-20 backdrop-blur-sm">
+                                    <p className="text-brand-accent font-bold mb-1">{item.name}</p>
+                                    <p className="text-brand-text-light flex items-center gap-1.5">
+                                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                        </svg>
+                                        <span className="font-bold text-lg">{item.count}</span>
+                                        <span>Klien</span>
+                                    </p>
+                                </div>
+                            )}
+                            
+                            {/* Count label on top of bar */}
+                            {item.count > 0 && (
+                                <div className={`absolute -top-6 text-xs font-bold py-1 px-2 rounded-md transition-all duration-300 ${
+                                    isHovered 
+                                        ? 'opacity-100 scale-110 text-brand-accent' 
+                                        : 'opacity-70 text-brand-text-secondary'
+                                }`}>
+                                    {item.count}
+                                </div>
+                            )}
+                            
+                            {/* Bar with gradient */}
                             <div
-                                className="bg-brand-accent/50 w-full rounded-md transition-colors hover:bg-brand-accent"
+                                className={`w-full rounded-t-xl transition-all duration-300 bg-gradient-to-t ${barColor.from} ${barColor.to} relative overflow-hidden ${
+                                    isHovered 
+                                        ? `shadow-2xl ${barColor.glow} scale-x-110 scale-y-105` 
+                                        : 'shadow-lg hover:scale-105'
+                                }`}
                                 style={{ height: `${height}%` }}
-                            ></div>
-                            <span className="text-xs text-brand-text-secondary mt-2">{item.name}</span>
+                            >
+                                {/* Shine effect */}
+                                <div className="absolute inset-0 bg-gradient-to-t from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                
+                                {/* Animated pulse when hovered */}
+                                {isHovered && (
+                                    <div className="absolute inset-0 animate-pulse bg-white/10"></div>
+                                )}
+                            </div>
+                            
+                            {/* Month label */}
+                            <span className={`text-[10px] mt-2.5 font-medium transition-all duration-300 ${
+                                isHovered 
+                                    ? 'text-brand-accent font-bold scale-110' 
+                                    : 'text-brand-text-secondary'
+                            }`}>
+                                {item.name}
+                            </span>
                         </div>
                     );
                 })}
+            </div>
+            
+            {/* Summary info */}
+            <div className="mt-4 pt-4 border-t border-brand-border flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2 text-brand-text-secondary">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                    </svg>
+                    <span>Total: <span className="font-bold text-brand-text-light">{data.reduce((sum, d) => sum + d.count, 0)} Klien</span></span>
+                </div>
+                <div className="text-brand-text-secondary">
+                    Rata-rata: <span className="font-bold text-brand-text-light">{(data.reduce((sum, d) => sum + d.count, 0) / data.length).toFixed(1)} / bulan</span>
+                </div>
             </div>
         </div>
     );
@@ -713,31 +1106,49 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
 
     const handleOpenModal = (mode: 'add' | 'edit', client?: Client, project?: Project) => {
         setModalMode(mode);
-        if (mode === 'edit' && client && project) {
+        if (mode === 'edit' && client) {
             setSelectedClient(client);
-            setSelectedProject(project);
-            setFormData({
-                clientId: client.id,
-                clientName: client.name,
-                email: client.email,
-                phone: client.phone,
-                whatsapp: client.whatsapp || '',
-                instagram: client.instagram || '',
-                clientType: client.clientType,
-                projectId: project.id,
-                projectName: project.projectName,
-                projectType: project.projectType,
-                location: project.location,
-                date: project.date,
-                packageId: project.packageId,
-                selectedAddOnIds: project.addOns.map(a => a.id),
-                dp: '', // Not editing DP here, handle in payment
-                dpDestinationCardId: '',
-                notes: project.notes || '',
-                accommodation: project.accommodation || '',
-                driveLink: project.driveLink || '',
-                promoCodeId: project.promoCodeId || '',
-            });
+            if (project) {
+                setSelectedProject(project);
+                setFormData({
+                    clientId: client.id,
+                    clientName: client.name,
+                    email: client.email,
+                    phone: client.phone,
+                    whatsapp: client.whatsapp || '',
+                    instagram: client.instagram || '',
+                    clientType: client.clientType,
+                    projectId: project.id,
+                    projectName: project.projectName,
+                    projectType: project.projectType,
+                    location: project.location,
+                    date: project.date,
+                    packageId: project.packageId,
+                    selectedAddOnIds: project.addOns.map(a => a.id),
+                    durationSelection: (project as any).durationSelection || '',
+                    unitPrice: (project as any).unitPrice,
+                    dp: '', // Not editing DP here, handle in payment
+                    dpDestinationCardId: '',
+                    notes: project.notes || '',
+                    accommodation: project.accommodation || '',
+                    driveLink: project.driveLink || '',
+                    promoCodeId: project.promoCodeId || '',
+                });
+            } else {
+                // Edit client only (no project yet)
+                setSelectedProject(null);
+                setFormData({ 
+                    ...initialFormState, 
+                    clientId: client.id, 
+                    clientName: client.name, 
+                    email: client.email, 
+                    phone: client.phone, 
+                    whatsapp: client.whatsapp || '', 
+                    instagram: client.instagram || '', 
+                    clientType: client.clientType,
+                    projectType: userProfile.projectTypes[0] || ''
+                });
+            }
         } else if (mode === 'add' && client) { // Adding new project for existing client
              setSelectedClient(client);
              setFormData({ ...initialFormState, clientId: client.id, clientName: client.name, email: client.email, phone: client.phone, whatsapp: client.whatsapp || '', instagram: client.instagram || '', clientType: client.clientType });
@@ -761,7 +1172,30 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
             const { id, checked } = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, selectedAddOnIds: checked ? [...prev.selectedAddOnIds, id] : prev.selectedAddOnIds.filter(addOnId => addOnId !== id) }));
         } else {
-            setFormData(prev => ({ ...prev, [name]: value }));
+                setFormData(prev => {
+                    // If package changed, attempt to apply default duration option
+                    if (name === 'packageId') {
+                        const pkg = packages.find(p => p.id === value);
+                        if (pkg && Array.isArray(pkg.durationOptions) && pkg.durationOptions.length > 0) {
+                            const defaultOpt = pkg.durationOptions.find(o => o.default) || pkg.durationOptions[0];
+                            return { ...prev, [name]: value, durationSelection: defaultOpt.label, unitPrice: Number(defaultOpt.price) };
+                        }
+                        // no durationOptions
+                        return { ...prev, [name]: value, durationSelection: '', unitPrice: pkg ? pkg.price : undefined };
+                    }
+
+                    // If durationSelection changed, compute unitPrice from selected package
+                    if (name === 'durationSelection') {
+                        const pkg = packages.find(p => p.id === prev.packageId);
+                        if (pkg && Array.isArray(pkg.durationOptions)) {
+                            const opt = pkg.durationOptions.find(o => o.label === value);
+                            if (opt) return { ...prev, durationSelection: value, unitPrice: Number(opt.price) };
+                        }
+                        return { ...prev, durationSelection: value };
+                    }
+
+                    return { ...prev, [name]: value };
+                });
         }
     };
     
@@ -882,8 +1316,10 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
             return;
         }
 
-        const selectedAddOns = addOns.filter(addon => formData.selectedAddOnIds.includes(addon.id));
-        const totalBeforeDiscount = selectedPackage.price + selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
+    const selectedAddOns = addOns.filter(addon => formData.selectedAddOnIds.includes(addon.id));
+    // Use unitPrice chosen in form (duration-based) when provided, otherwise fallback to package price
+    const packagePriceChosen = formData.unitPrice !== undefined && !isNaN(Number(formData.unitPrice)) ? Number(formData.unitPrice) : (selectedPackage.price || 0);
+    const totalBeforeDiscount = packagePriceChosen + selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
         let finalDiscountAmount = 0;
         const promoCode = promoCodes.find(p => p.id === formData.promoCodeId);
         if (promoCode) {
@@ -936,6 +1372,9 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                     totalCost: totalProject,
                     amountPaid: dpAmount,
                     paymentStatus: dpAmount > 0 ? (remainingPayment <= 0 ? PaymentStatus.LUNAS : PaymentStatus.DP_TERBAYAR) : PaymentStatus.BELUM_BAYAR,
+                    // persist chosen duration and unit price if present
+                    durationSelection: formData.durationSelection || undefined,
+                    unitPrice: formData.unitPrice !== undefined ? Number(formData.unitPrice) : undefined,
                     notes: formData.notes || undefined,
                     accommodation: formData.accommodation || undefined,
                     driveLink: formData.driveLink || undefined,
@@ -1038,7 +1477,8 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                 return;
             }
             const selectedAddOns = addOns.filter(addon => formData.selectedAddOnIds.includes(addon.id));
-            const totalBeforeDiscount = selectedPackage.price + selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
+            const packagePriceChosen = formData.unitPrice !== undefined && !isNaN(Number(formData.unitPrice)) ? Number(formData.unitPrice) : (selectedPackage.price || 0);
+            const totalBeforeDiscount = packagePriceChosen + selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
             let finalDiscountAmount = 0;
             const promoCode = promoCodes.find(p => p.id === formData.promoCodeId);
             if (promoCode) {
@@ -1069,6 +1509,9 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                     totalCost: totalProject,
                     amountPaid: newAmountPaid,
                     paymentStatus: newPaymentStatus,
+                    // persist chosen duration/unit when editing
+                    durationSelection: formData.durationSelection || undefined,
+                    unitPrice: formData.unitPrice !== undefined ? Number(formData.unitPrice) : undefined,
                     notes: formData.notes || undefined,
                     accommodation: formData.accommodation || undefined,
                     driveLink: formData.driveLink || undefined,
@@ -1239,6 +1682,28 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
 
             // Original package name - no cleaning
             const originalPackageName = selectedPackage?.name || project.packageName;
+            
+            // Calculate displayedUnitPrice with better fallback logic
+            let displayedUnitPrice = 0;
+            if ((project as any).unitPrice !== undefined && (project as any).unitPrice !== null && Number((project as any).unitPrice) > 0) {
+                displayedUnitPrice = Number((project as any).unitPrice);
+            } else if (selectedPackage) {
+                // If duration selection exists, try to find the price from duration options
+                const durationSelection = (project as any).durationSelection;
+                if (durationSelection && selectedPackage.durationOptions && selectedPackage.durationOptions.length > 0) {
+                    const durationOption = selectedPackage.durationOptions.find(opt => opt.label === durationSelection);
+                    displayedUnitPrice = durationOption ? Number(durationOption.price) : Number(selectedPackage.price);
+                } else {
+                    displayedUnitPrice = Number(selectedPackage.price);
+                }
+            } else {
+                // Fallback: calculate from total cost minus addons and transport
+                const addOnsTotal = (project.addOns || []).reduce((sum, addon) => sum + (addon.price || 0), 0);
+                const transportCost = Number(project.transportCost || 0);
+                displayedUnitPrice = Math.max(0, subtotal - addOnsTotal - transportCost);
+            }
+            
+            const displayedDurationLabel = (project as any).durationSelection || undefined;
 
             // Original add-on names - no cleaning, show all duplicates as they are
             const originalAddOns = project.addOns || [];
@@ -1295,6 +1760,9 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                                                         {selectedPackage.digitalItems.join(', ')}
                                                     </p>
                                                 )}
+                                                {displayedDurationLabel && (
+                                                    <p className="text-xs text-slate-500 mt-1 leading-relaxed">Durasi: {displayedDurationLabel}</p>
+                                                )}
                                             </div>
                                         </td>
                                         <td data-label="Jml" className="p-3 text-center align-top">
@@ -1302,12 +1770,12 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                                         </td>
                                         <td data-label="Harga" className="p-3 text-right align-top">
                                             <span className="font-semibold text-slate-700 tabular-nums">
-                                                {formatCurrency(selectedPackage?.price || 0)}
+                                                {formatCurrency(displayedUnitPrice)}
                                             </span>
                                         </td>
                                         <td data-label="Total" className="p-3 text-right align-top">
                                             <span className="font-bold text-slate-800 tabular-nums">
-                                                {formatCurrency(selectedPackage?.price || 0)}
+                                                {formatCurrency(displayedUnitPrice)}
                                             </span>
                                         </td>
                                     </tr>
@@ -1459,18 +1927,50 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                 </div>
             </PageHeader>
     
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div onClick={() => setActiveStatModal('total')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total Klien" value={clientStats.totalClients.toString()} />
+            <div className="grid grid-cols-2 gap-6">
+                <div className="transition-transform duration-200 hover:scale-105">
+                    <StatCard 
+                        icon={<UsersIcon className="w-6 h-6"/>} 
+                        title="Total Klien" 
+                        value={clientStats.totalClients.toString()} 
+                        subtitle="Semua klien terdaftar" 
+                        colorVariant="blue"
+                        description={`Total klien yang terdaftar dalam sistem Anda.\n\nTotal: ${clientStats.totalClients} klien\n\nKlien adalah aset berharga bisnis Anda. Jaga hubungan baik untuk repeat business dan referral.`}
+                        onClick={() => setActiveStatModal('total')}
+                    />
                 </div>
-                <div onClick={() => setActiveStatModal('active')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<TrendingUpIcon className="w-6 h-6"/>} title="Klien Aktif" value={clientStats.activeClients.toString()} />
+                <div className="transition-transform duration-200 hover:scale-105">
+                    <StatCard 
+                        icon={<TrendingUpIcon className="w-6 h-6"/>} 
+                        title="Klien Aktif" 
+                        value={clientStats.activeClients.toString()} 
+                        subtitle="Klien dengan proyek berjalan" 
+                        colorVariant="green"
+                        description={`Klien yang memiliki proyek aktif saat ini.\n\nAktif: ${clientStats.activeClients} klien\n\nFokus pada klien aktif untuk memastikan kepuasan dan penyelesaian proyek tepat waktu.`}
+                        onClick={() => setActiveStatModal('active')}
+                    />
                 </div>
-                <div onClick={() => setActiveStatModal('receivables')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<AlertCircleIcon className="w-6 h-6"/>} title="Total Piutang" value={clientStats.totalReceivables} />
+                <div className="transition-transform duration-200 hover:scale-105">
+                    <StatCard 
+                        icon={<AlertCircleIcon className="w-6 h-6"/>} 
+                        title="Total Piutang" 
+                        value={clientStats.totalReceivables} 
+                        subtitle="Tagihan belum terbayar" 
+                        colorVariant="orange"
+                        description={`Total piutang dari semua klien yang belum dibayar.\n\nPiutang: ${clientStats.totalReceivables}\n\nSegera tagih untuk menjaga cash flow bisnis Anda.`}
+                        onClick={() => setActiveStatModal('receivables')}
+                    />
                 </div>
-                <div onClick={() => setActiveStatModal('location')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<MapPinIcon className="w-6 h-6"/>} title="Lokasi Teratas" value={clientStats.mostFrequentLocation} />
+                <div className="transition-transform duration-200 hover:scale-105">
+                    <StatCard 
+                        icon={<MapPinIcon className="w-6 h-6"/>} 
+                        title="Lokasi Teratas" 
+                        value={clientStats.mostFrequentLocation} 
+                        subtitle="Lokasi paling sering dipilih" 
+                        colorVariant="purple"
+                        description={`Lokasi yang paling sering dipilih oleh klien Anda.\n\nTeratas: ${clientStats.mostFrequentLocation}\n\nInformasi ini membantu Anda memahami area market utama.`}
+                        onClick={() => setActiveStatModal('location')}
+                    />
                 </div>
             </div>
 
@@ -1488,14 +1988,43 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                 <div className="p-4 border-b border-brand-border">
                     <h3 className="font-semibold text-brand-text-light">Rekap Klien Belum Lunas ({clientsWithDues.length})</h3>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Mobile cards */}
+                <div className="md:hidden p-4 space-y-3">
+                    {clientsWithDues.map(client => (
+                        <div key={client.id} className="rounded-2xl bg-white/5 border border-brand-border p-4 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="font-semibold text-brand-text-light leading-tight">{client.name}</p>
+                                    <p className="text-[11px] text-brand-text-secondary">{client.email}</p>
+                                </div>
+                                <button 
+                                    onClick={() => setBillingChatModal(client)}
+                                    className="button-secondary !text-xs !px-3 !py-2"
+                                >Tagih</button>
+                            </div>
+                            <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+                                <span className="text-brand-text-secondary">Total Nilai</span>
+                                <span className="text-right">{formatCurrency(client.totalProyekValue)}</span>
+                                <span className="text-brand-text-secondary">Sisa Tagihan</span>
+                                <span className="text-right font-bold text-brand-danger">{formatCurrency(client.balanceDue)}</span>
+                                <span className="text-brand-text-secondary">Proyek Terbaru</span>
+                                <span className="text-right">{client.mostRecentProject?.projectName || '-'}</span>
+                            </div>
+                        </div>
+                    ))}
+                    {clientsWithDues.length === 0 && (
+                        <p className="text-center py-8 text-brand-text-secondary">Luar biasa! Semua klien sudah lunas.</p>
+                    )}
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-brand-text-secondary uppercase">
                             <tr>
                                 <th className="px-6 py-4 font-medium tracking-wider">Klien</th>
-                                <th className="px-6 py-4 font-medium tracking-wider">Bergabung Sejak</th>
                                 <th className="px-6 py-4 font-medium tracking-wider text-right">Total Nilai Proyek</th>
                                 <th className="px-6 py-4 font-medium tracking-wider text-right">Sisa Tagihan</th>
+                                <th className="px-6 py-4 font-medium tracking-wider">Proyek Terbaru</th>
                                 <th className="px-6 py-4 font-medium tracking-wider text-center">Aksi</th>
                             </tr>
                         </thead>
@@ -1506,9 +2035,9 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                                         <p className="font-semibold text-brand-text-light">{client.name}</p>
                                         <p className="text-xs text-brand-text-secondary">{client.email}</p>
                                     </td>
-                                    <td className="px-6 py-4">{new Date(client.since).toLocaleDateString('id-ID')}</td>
                                     <td className="px-6 py-4 text-right">{formatCurrency(client.totalProyekValue)}</td>
                                     <td className="px-6 py-4 text-right font-bold text-brand-danger">{formatCurrency(client.balanceDue)}</td>
+                                    <td className="px-6 py-4">{client.mostRecentProject?.projectName || '-'}</td>
                                     <td className="px-6 py-4 text-center">
                                         <button 
                                             onClick={() => setBillingChatModal(client)}
@@ -1549,14 +2078,51 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
             </div>
     
             <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border">
-                <div className="p-4 border-b border-brand-border">
+                <div className="p-3 md:p-4 border-b border-brand-border">
                     <button onClick={() => setActiveSectionOpen(p => !p)} className="w-full flex justify-between items-center">
-                        <h3 className="font-semibold text-brand-text-light">Klien Aktif ({filteredClientData.filter(c => c.status === ClientStatus.ACTIVE).length})</h3>
-                        {activeSectionOpen ? <ArrowUpIcon className="w-5 h-5 text-brand-text-secondary"/> : <ArrowDownIcon className="w-5 h-5 text-brand-text-secondary"/>}
+                        <h3 className="text-sm md:text-base font-semibold text-brand-text-light">Klien Aktif ({filteredClientData.filter(c => c.status === ClientStatus.ACTIVE).length})</h3>
+                        {activeSectionOpen ? <ArrowUpIcon className="w-4 h-4 md:w-5 md:h-5 text-brand-text-secondary"/> : <ArrowDownIcon className="w-4 h-4 md:w-5 md:h-5 text-brand-text-secondary"/>}
                     </button>
                 </div>
                 {activeSectionOpen && (
-                    <div className="overflow-x-auto">
+                    <>
+                    {/* Mobile cards for Active Clients */}
+                    <div className="md:hidden p-3 space-y-2">
+                        {filteredClientData.filter(c => c.status === ClientStatus.ACTIVE).map(client => (
+                            <div key={client.id} className="rounded-xl bg-white/5 border border-brand-border p-3 shadow-sm hover:shadow-md transition-all">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm text-brand-text-light leading-tight truncate">{client.name}</p>
+                                        <p className="text-[10px] text-brand-text-secondary mt-0.5 truncate">{client.email}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1 flex-shrink-0">
+                                        {client.overallPaymentStatus && (
+                                            <span className={`px-1.5 py-0.5 text-[9px] font-semibold rounded-full ${getPaymentStatusClass(client.overallPaymentStatus)}`}>{client.overallPaymentStatus}</span>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-y-1.5 text-xs">
+                                    <span className="text-brand-text-secondary text-[10px]">Total Nilai</span>
+                                    <span className="text-right font-semibold text-xs">{formatCurrency(client.totalProyekValue)}</span>
+                                    <span className="text-brand-text-secondary text-[10px]">Sisa Tagihan</span>
+                                    <span className="text-right font-bold text-xs text-brand-danger">{formatCurrency(client.balanceDue)}</span>
+                                    <span className="text-brand-text-secondary text-[10px]">Proyek Terbaru</span>
+                                    <span className="text-right text-xs truncate">{client.mostRecentProject?.projectName || '-'}</span>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-brand-border/50 flex justify-end gap-1.5">
+                                    <button onClick={() => { setClientForDetail(client); setIsDetailModalOpen(true); }} className="button-secondary !text-[10px] !px-2 !py-1.5" title="Detail"><EyeIcon className="w-3 h-3"/></button>
+                                    <button onClick={() => handleOpenModal('edit', client, client.mostRecentProject || undefined)} className="button-secondary !text-[10px] !px-2 !py-1.5" title="Edit"><PencilIcon className="w-3 h-3"/></button>
+                                    <button onClick={() => handleDeleteClient(client.id)} className="button-secondary !text-[10px] !px-2 !py-1.5 !text-brand-danger !border-brand-danger hover:!bg-brand-danger/10" title="Hapus"><Trash2Icon className="w-3 h-3"/></button>
+                                    <button onClick={() => handleOpenModal('add', client)} className="button-primary !text-[10px] !px-2.5 !py-1.5"><PlusIcon className="w-3 h-3"/></button>
+                                </div>
+                            </div>
+                        ))}
+                        {filteredClientData.filter(c => c.status === ClientStatus.ACTIVE).length === 0 && (
+                            <p className="text-center py-8 text-xs text-brand-text-secondary">Tidak ada klien aktif.</p>
+                        )}
+                    </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-brand-text-secondary uppercase">
                                 <tr>
@@ -1574,21 +2140,50 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                                         <td className="px-6 py-4 font-semibold">{formatCurrency(client.totalProyekValue)}</td>
                                         <td className="px-6 py-4 font-semibold text-red-400">{formatCurrency(client.balanceDue)}</td>
                                         <td className="px-6 py-4"><p>{client.mostRecentProject?.projectName || '-'}</p>{client.overallPaymentStatus && <span className={`px-2 py-1 text-xs font-medium rounded-full ${getPaymentStatusClass(client.overallPaymentStatus)}`}>{client.overallPaymentStatus}</span>}</td>
-                                        <td className="px-6 py-4"><div className="flex items-center justify-center space-x-1"><button onClick={() => { setClientForDetail(client); setIsDetailModalOpen(true); }} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Detail Klien"><EyeIcon className="w-5 h-5"/></button><button onClick={() => handleOpenModal('add', client)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Tambah Proyek Baru"><PlusIcon className="w-5 h-5"/></button></div></td>
+                                        <td className="px-6 py-4"><div className="flex items-center justify-center space-x-1"><button onClick={() => { setClientForDetail(client); setIsDetailModalOpen(true); }} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Detail Klien"><EyeIcon className="w-5 h-5"/></button><button onClick={() => handleOpenModal('edit', client, client.mostRecentProject || undefined)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Edit Klien"><PencilIcon className="w-5 h-5"/></button><button onClick={() => handleDeleteClient(client.id)} className="p-2 text-brand-danger hover:bg-brand-danger/10 rounded-full" title="Hapus Klien"><Trash2Icon className="w-5 h-5"/></button><button onClick={() => handleOpenModal('add', client)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Tambah Proyek Baru"><PlusIcon className="w-5 h-5"/></button></div></td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
                     </div>
+                    </>
                 )}
-                <div className="p-4 border-t border-brand-border">
+                <div className="p-3 md:p-4 border-t border-brand-border">
                     <button onClick={() => setInactiveSectionOpen(p => !p)} className="w-full flex justify-between items-center">
-                        <h3 className="font-semibold text-brand-text-light">Klien Tidak Aktif / Prospek Hilang ({filteredClientData.filter(c => c.status !== ClientStatus.ACTIVE).length})</h3>
-                        {inactiveSectionOpen ? <ArrowUpIcon className="w-5 h-5 text-brand-text-secondary"/> : <ArrowDownIcon className="w-5 h-5 text-brand-text-secondary"/>}
+                        <h3 className="text-sm md:text-base font-semibold text-brand-text-light">Klien Tidak Aktif / Prospek Hilang ({filteredClientData.filter(c => c.status !== ClientStatus.ACTIVE).length})</h3>
+                        {inactiveSectionOpen ? <ArrowUpIcon className="w-4 h-4 md:w-5 md:h-5 text-brand-text-secondary"/> : <ArrowDownIcon className="w-4 h-4 md:w-5 md:h-5 text-brand-text-secondary"/>}
                     </button>
                 </div>
                 {inactiveSectionOpen && (
-                     <div className="overflow-x-auto">
+                    <>
+                    {/* Mobile cards for Inactive Clients */}
+                    <div className="md:hidden p-3 space-y-2">
+                        {filteredClientData.filter(c => c.status !== ClientStatus.ACTIVE).map(client => (
+                            <div key={client.id} className="rounded-xl bg-white/5 border border-brand-border p-3 shadow-sm opacity-70 hover:opacity-90 transition-all">
+                                <div className="flex items-start justify-between gap-2">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm text-brand-text-light leading-tight truncate">{client.name}</p>
+                                        <p className="text-[10px] text-brand-text-secondary mt-0.5 truncate">{client.email}</p>
+                                    </div>
+                                    <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-gray-700 text-gray-300 flex-shrink-0">{client.status}</span>
+                                </div>
+                                <div className="mt-2 grid grid-cols-2 gap-y-1.5 text-xs">
+                                    <span className="text-brand-text-secondary text-[10px]">Kontak Terakhir</span>
+                                    <span className="text-right text-xs">{new Date(client.lastContact).toLocaleDateString('id-ID')}</span>
+                                </div>
+                                <div className="mt-2 pt-2 border-t border-brand-border/50 flex justify-end gap-1.5">
+                                    <button onClick={() => { setClientForDetail(client); setIsDetailModalOpen(true); }} className="button-secondary !text-[10px] !px-2 !py-1.5" title="Detail"><EyeIcon className="w-3 h-3"/></button>
+                                    <button onClick={() => handleOpenModal('edit', client, client.mostRecentProject || undefined)} className="button-secondary !text-[10px] !px-2 !py-1.5" title="Edit"><PencilIcon className="w-3 h-3"/></button>
+                                    <button onClick={() => handleDeleteClient(client.id)} className="button-secondary !text-[10px] !px-2 !py-1.5 !text-brand-danger !border-brand-danger hover:!bg-brand-danger/10" title="Hapus"><Trash2Icon className="w-3 h-3"/></button>
+                                </div>
+                            </div>
+                        ))}
+                        {filteredClientData.filter(c => c.status !== ClientStatus.ACTIVE).length === 0 && (
+                            <p className="text-center py-6 text-sm text-brand-text-secondary">Tidak ada klien tidak aktif.</p>
+                        )}
+                    </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="text-xs text-brand-text-secondary uppercase"><tr><th className="px-6 py-4 font-medium tracking-wider">Klien</th><th className="px-6 py-4 font-medium tracking-wider">Status</th><th className="px-6 py-4 font-medium tracking-wider">Kontak Terakhir</th><th className="px-6 py-4 font-medium tracking-wider text-center">Aksi</th></tr></thead>
                             <tbody className="divide-y divide-brand-border">
@@ -1597,12 +2192,13 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                                         <td className="px-6 py-4"><p className="font-semibold text-brand-text-light">{client.name}</p><p className="text-xs text-brand-text-secondary">{client.email}</p></td>
                                         <td className="px-6 py-4"><span className="px-2 py-1 text-xs font-medium rounded-full bg-gray-700 text-gray-300">{client.status}</span></td>
                                         <td className="px-6 py-4">{new Date(client.lastContact).toLocaleDateString('id-ID')}</td>
-                                        <td className="px-6 py-4"><div className="flex items-center justify-center space-x-1"><button onClick={() => { setClientForDetail(client); setIsDetailModalOpen(true); }} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Detail Klien"><EyeIcon className="w-5 h-5"/></button></div></td>
+                                        <td className="px-6 py-4"><div className="flex items-center justify-center space-x-1"><button onClick={() => { setClientForDetail(client); setIsDetailModalOpen(true); }} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Detail Klien"><EyeIcon className="w-5 h-5"/></button><button onClick={() => handleOpenModal('edit', client, client.mostRecentProject || undefined)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Edit Klien"><PencilIcon className="w-5 h-5"/></button><button onClick={() => handleDeleteClient(client.id)} className="p-2 text-brand-danger hover:bg-brand-danger/10 rounded-full" title="Hapus Klien"><Trash2Icon className="w-5 h-5"/></button></div></td>
                                     </tr>
                                 ))}
                             </tbody>
                         </table>
-                     </div>
+                    </div>
+                    </>
                 )}
             </div>
     
@@ -1711,6 +2307,134 @@ const Clients: React.FC<ClientsProps> = ({ clients, setClients, projects, setPro
                     showNotification={showNotification}
                 />
             )}
+
+            {/* StatCard Detail Modals */}
+            <StatCardModal
+                isOpen={activeStatModal === 'total'}
+                onClose={() => setActiveStatModal(null)}
+                icon={<UsersIcon className="w-6 h-6"/>}
+                title="Total Klien"
+                value={clientStats.totalClients.toString()}
+                subtitle="Semua klien terdaftar"
+                colorVariant="blue"
+                description={`Total klien yang terdaftar dalam sistem Anda.\n\nTotal: ${clientStats.totalClients} klien\n\nKlien adalah aset berharga bisnis Anda. Jaga hubungan baik untuk repeat business dan referral.`}
+            >
+                <div className="space-y-3">
+                    <h4 className="font-semibold text-brand-text-light border-b border-brand-border pb-2">Daftar Klien</h4>
+                    {clients.slice(0, 10).map(client => {
+                        const clientProjects = projects.filter(p => p.clientId === client.id);
+                        return (
+                            <div key={client.id} className="p-3 bg-brand-bg rounded-lg hover:bg-brand-input transition-colors">
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="font-semibold text-brand-text-light text-sm">{client.name}</p>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${
+                                        client.status === ClientStatus.ACTIVE ? 'bg-green-500/20 text-green-500' :
+                                        client.status === ClientStatus.INACTIVE ? 'bg-gray-500/20 text-gray-500' :
+                                        'bg-blue-500/20 text-blue-500'
+                                    }`}>{client.status}</span>
+                                </div>
+                                <p className="text-xs text-brand-text-secondary">{client.email}</p>
+                                <p className="text-xs text-brand-text-secondary mt-1">{clientProjects.length} proyek</p>
+                            </div>
+                        );
+                    })}
+                    {clients.length > 10 && (
+                        <p className="text-xs text-brand-text-secondary text-center pt-2">Dan {clients.length - 10} klien lainnya...</p>
+                    )}
+                </div>
+            </StatCardModal>
+
+            <StatCardModal
+                isOpen={activeStatModal === 'active'}
+                onClose={() => setActiveStatModal(null)}
+                icon={<TrendingUpIcon className="w-6 h-6"/>}
+                title="Klien Aktif"
+                value={clientStats.activeClients.toString()}
+                subtitle="Klien dengan proyek berjalan"
+                colorVariant="green"
+                description={`Klien yang memiliki proyek aktif saat ini.\n\nAktif: ${clientStats.activeClients} klien\n\nFokus pada klien aktif untuk memastikan kepuasan dan penyelesaian proyek tepat waktu.`}
+            >
+                <div className="space-y-3">
+                    <h4 className="font-semibold text-brand-text-light border-b border-brand-border pb-2">Klien dengan Proyek Aktif</h4>
+                    {clients.filter(c => projects.some(p => p.clientId === c.id && p.status !== 'Selesai' && p.status !== 'Dibatalkan')).map(client => {
+                        const activeProjects = projects.filter(p => p.clientId === client.id && p.status !== 'Selesai' && p.status !== 'Dibatalkan');
+                        return (
+                            <div key={client.id} className="p-3 bg-brand-bg rounded-lg hover:bg-brand-input transition-colors">
+                                <p className="font-semibold text-brand-text-light text-sm">{client.name}</p>
+                                <p className="text-xs text-brand-text-secondary mt-1">{activeProjects.length} proyek aktif</p>
+                                <div className="mt-2 flex flex-wrap gap-1">
+                                    {activeProjects.slice(0, 3).map(p => (
+                                        <span key={p.id} className="text-xs px-2 py-0.5 rounded-full bg-brand-accent/20 text-brand-accent">
+                                            {p.projectName}
+                                        </span>
+                                    ))}
+                                    {activeProjects.length > 3 && (
+                                        <span className="text-xs text-brand-text-secondary">+{activeProjects.length - 3} lagi</span>
+                                    )}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </StatCardModal>
+
+            <StatCardModal
+                isOpen={activeStatModal === 'receivables'}
+                onClose={() => setActiveStatModal(null)}
+                icon={<AlertCircleIcon className="w-6 h-6"/>}
+                title="Total Piutang"
+                value={clientStats.totalReceivables}
+                subtitle="Tagihan belum terbayar"
+                colorVariant="orange"
+                description={`Total piutang dari semua klien yang belum dibayar.\n\nPiutang: ${clientStats.totalReceivables}\n\nSegera tagih untuk menjaga cash flow bisnis Anda.`}
+            >
+                <div className="space-y-3">
+                    <h4 className="font-semibold text-brand-text-light border-b border-brand-border pb-2">Klien dengan Piutang</h4>
+                    {clients.map(client => {
+                        const clientProjects = projects.filter(p => p.clientId === client.id);
+                        const totalReceivable = clientProjects.reduce((sum, p) => sum + (p.totalCost - p.amountPaid), 0);
+                        if (totalReceivable <= 0) return null;
+                        return (
+                            <div key={client.id} className="p-3 bg-brand-bg rounded-lg hover:bg-brand-input transition-colors">
+                                <div className="flex justify-between items-start mb-1">
+                                    <p className="font-semibold text-brand-text-light text-sm">{client.name}</p>
+                                    <span className="text-sm text-orange-500 font-semibold">{formatCurrency(totalReceivable)}</span>
+                                </div>
+                                <p className="text-xs text-brand-text-secondary">{clientProjects.filter(p => (p.totalCost - p.amountPaid) > 0).length} proyek dengan piutang</p>
+                            </div>
+                        );
+                    }).filter(Boolean)}
+                </div>
+            </StatCardModal>
+
+            <StatCardModal
+                isOpen={activeStatModal === 'location'}
+                onClose={() => setActiveStatModal(null)}
+                icon={<MapPinIcon className="w-6 h-6"/>}
+                title="Lokasi Teratas"
+                value={clientStats.mostFrequentLocation}
+                subtitle="Lokasi paling sering dipilih"
+                colorVariant="purple"
+                description={`Lokasi yang paling sering dipilih oleh klien Anda.\n\nTeratas: ${clientStats.mostFrequentLocation}\n\nInformasi ini membantu Anda memahami area market utama.`}
+            >
+                <div className="space-y-3">
+                    <h4 className="font-semibold text-brand-text-light border-b border-brand-border pb-2">Distribusi Lokasi Klien</h4>
+                    {Object.entries(
+                        clients.reduce((acc, c) => {
+                            // Get location from client's projects
+                            const clientProjects = projects.filter(p => p.clientId === c.id);
+                            const loc = clientProjects.length > 0 && clientProjects[0].location ? clientProjects[0].location : 'Tidak Diketahui';
+                            acc[loc] = (acc[loc] || 0) + 1;
+                            return acc;
+                        }, {} as Record<string, number>)
+                    ).sort(([, a], [, b]) => b - a).map(([location, count]) => (
+                        <div key={location} className="p-3 bg-brand-bg rounded-lg flex justify-between items-center">
+                            <p className="font-semibold text-brand-text-light text-sm">{location}</p>
+                            <span className="text-sm text-brand-accent font-semibold">{count} klien</span>
+                        </div>
+                    ))}
+                </div>
+            </StatCardModal>
         </div>
     );
 };

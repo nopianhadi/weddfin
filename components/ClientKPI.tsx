@@ -305,7 +305,7 @@ const ClientReports: React.FC<ClientReportsProps> = ({ clients, leads, projects,
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-6">
                 <div className="widget-animate cursor-pointer transition-transform duration-200 hover:scale-105" style={{ animationDelay: '100ms' }} onClick={() => setActiveStatModal('total')}>
                     <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total Klien" value={kpiData.totalClients.toString()} iconBgColor="bg-blue-500/20" iconColor="text-blue-400" />
                 </div>
@@ -321,13 +321,32 @@ const ClientReports: React.FC<ClientReportsProps> = ({ clients, leads, projects,
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 widget-animate" style={{ animationDelay: '500ms' }}>
-                <div className="lg:col-span-2 bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border">
-                    <h4 className="text-lg font-bold text-gradient mb-4">Sumber Prospek</h4>
+                <div className="lg:col-span-2 bg-brand-surface p-4 md:p-6 rounded-2xl shadow-lg border border-brand-border">
+                    <h4 className="text-base md:text-lg font-bold text-gradient mb-3 md:mb-4">Sumber Prospek</h4>
                     <DonutChart data={kpiData.leadSourceDonutData} />
                 </div>
-                <div className="lg:col-span-3 bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border">
-                    <h4 className="text-lg font-bold text-gradient mb-4">Daftar Klien Terbaru</h4>
-                    <div className="overflow-x-auto max-h-96">
+                <div className="lg:col-span-3 bg-brand-surface p-4 md:p-6 rounded-2xl shadow-lg border border-brand-border">
+                    <h4 className="text-base md:text-lg font-bold text-gradient mb-3 md:mb-4">Daftar Klien Terbaru</h4>
+                    {/* Mobile cards */}
+                    <div className="md:hidden space-y-2 max-h-96 overflow-y-auto">
+                        {filteredClients.slice(0, 10).map(client => {
+                            const clientProjects = projects.filter(p => p.clientId === client.id);
+                            const totalValue = clientProjects.reduce((sum, p) => sum + p.totalCost, 0);
+                            return (
+                                <div key={client.id} className="bg-brand-bg p-3 rounded-lg">
+                                    <p className="font-semibold text-sm text-brand-text-light">{client.name}</p>
+                                    <div className="mt-2 grid grid-cols-2 gap-y-1 text-xs">
+                                        <span className="text-brand-text-secondary">Bergabung</span>
+                                        <span className="text-right text-brand-text-primary">{new Date(client.since).toLocaleDateString('id-ID')}</span>
+                                        <span className="text-brand-text-secondary">Total Nilai</span>
+                                        <span className="text-right font-semibold text-brand-text-primary">{formatCurrency(totalValue)}</span>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {/* Desktop table */}
+                    <div className="hidden md:block overflow-x-auto max-h-96">
                          <table className="w-full text-sm">
                             <thead className="bg-brand-input">
                                 <tr>
@@ -354,9 +373,9 @@ const ClientReports: React.FC<ClientReportsProps> = ({ clients, leads, projects,
                 </div>
             </div>
 
-            <div className="bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border widget-animate" style={{ animationDelay: '600ms' }}>
+            <div className="bg-brand-surface p-4 md:p-6 rounded-2xl shadow-lg border border-brand-border widget-animate" style={{ animationDelay: '600ms' }}>
                 <div className="flex flex-col md:flex-row justify-between md:items-center mb-4 gap-4">
-                    <h4 className="text-lg font-bold text-gradient">Analisis Kepuasan Klien</h4>
+                    <h4 className="text-base md:text-lg font-bold text-gradient">Analisis Kepuasan Klien</h4>
                     <div className="flex items-center gap-2 self-start md:self-center">
                          <button onClick={() => setIsShareModalOpen(true)} className="button-secondary inline-flex items-center gap-2">
                             <Share2Icon className="w-4 h-4" /> Bagikan Form
@@ -367,7 +386,7 @@ const ClientReports: React.FC<ClientReportsProps> = ({ clients, leads, projects,
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-2 gap-4 mb-6">
                     <div className="cursor-pointer transition-transform duration-200 hover:scale-105" onClick={() => setActiveStatModal('very-satisfied')}>
                         <StatCard icon={<SmileIcon className="w-6 h-6"/>} title="Sangat Puas" value={satisfactionCounts[SatisfactionLevel.VERY_SATISFIED].toString()} iconBgColor="bg-green-500/20" iconColor="text-green-400" />
                     </div>
@@ -382,40 +401,46 @@ const ClientReports: React.FC<ClientReportsProps> = ({ clients, leads, projects,
                     </div>
                 </div>
                 
-                <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mt-6 pt-6 border-t border-brand-border">
+                <div className="grid grid-cols-1 lg:grid-cols-5 gap-4 md:gap-6 mt-4 md:mt-6 pt-4 md:pt-6 border-t border-brand-border">
                     <div className="lg:col-span-2">
-                        <h5 className="font-semibold text-brand-text-light mb-3">Rekomendasi Aksi</h5>
-                        <div className="space-y-3">
+                        <h5 className="font-semibold text-sm md:text-base text-brand-text-light mb-3">Rekomendasi Aksi</h5>
+                        <div className="space-y-2 md:space-y-3">
                             {actionRecommendations.length > 0 ? actionRecommendations.map(rec => (
-                                <div key={rec.id} className="bg-brand-bg p-4 rounded-lg flex items-start gap-4">
+                                <div key={rec.id} className="bg-brand-bg p-3 md:p-4 rounded-lg flex items-start gap-3 md:gap-4">
                                     <div className="flex-shrink-0 mt-1">{rec.icon}</div>
                                     <div>
-                                        <p className="font-medium text-brand-text-light text-sm">{rec.title}</p>
-                                        <p className="text-xs text-brand-text-secondary">{rec.text}</p>
+                                        <p className="font-medium text-brand-text-light text-xs md:text-sm">{rec.title}</p>
+                                        <p className="text-[10px] md:text-xs text-brand-text-secondary">{rec.text}</p>
                                     </div>
                                 </div>
-                            )) : <p className="text-sm text-center text-brand-text-secondary py-8">Tidak ada rekomendasi khusus saat ini.</p>}
+                            )) : <p className="text-xs md:text-sm text-center text-brand-text-secondary py-8">Tidak ada rekomendasi khusus saat ini.</p>}
                         </div>
                     </div>
                      <div className="lg:col-span-3">
-                        <h5 className="font-semibold text-brand-text-light mb-3">Detail Masukan Terbaru</h5>
-                        <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+                        <h5 className="font-semibold text-sm md:text-base text-brand-text-light mb-3">Detail Masukan Terbaru</h5>
+                        <div className="space-y-2 md:space-y-3 max-h-[400px] overflow-y-auto pr-2">
                             {filteredFeedback.map(item => (
-                                <div key={item.id} className="bg-brand-bg p-4 rounded-lg">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold text-brand-text-light">{item.clientName}</p>
-                                            <span className={`mt-1 inline-block px-2 py-0.5 text-xs font-medium rounded-full ${getSatisfactionClass(item.satisfaction)}`}>
+                                <div key={item.id} className="bg-brand-bg p-3 md:p-4 rounded-lg">
+                                    <div className="flex justify-between items-start gap-2">
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-semibold text-sm md:text-base text-brand-text-light truncate">{item.clientName}</p>
+                                            <span className={`mt-1 inline-block px-2 py-0.5 text-[10px] md:text-xs font-medium rounded-full ${getSatisfactionClass(item.satisfaction)}`}>
                                                 {item.satisfaction}
                                             </span>
                                         </div>
-                                        <StarRatingDisplay rating={item.rating} />
+                                        <div className="flex-shrink-0">
+                                            <div className="flex items-center">
+                                                {[1, 2, 3, 4, 5].map(star => (
+                                                    <StarIcon key={star} className={`w-3 md:w-4 h-3 md:h-4 ${star <= item.rating ? 'text-yellow-400 fill-current' : 'text-gray-600'}`} />
+                                                ))}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p className="text-sm text-brand-text-primary mt-3 pt-3 border-t border-brand-border">"{item.feedback}"</p>
-                                    <p className="text-right text-xs text-brand-text-secondary mt-2">{new Date(item.date).toLocaleDateString('id-ID')}</p>
+                                    <p className="text-xs md:text-sm text-brand-text-primary mt-2 md:mt-3 pt-2 md:pt-3 border-t border-brand-border">"{item.feedback}"</p>
+                                    <p className="text-right text-[10px] md:text-xs text-brand-text-secondary mt-2">{new Date(item.date).toLocaleDateString('id-ID')}</p>
                                 </div>
                             ))}
-                            {filteredFeedback.length === 0 && <p className="text-center text-brand-text-secondary py-10">Belum ada masukan dari klien pada periode ini.</p>}
+                            {filteredFeedback.length === 0 && <p className="text-center text-xs md:text-sm text-brand-text-secondary py-10">Belum ada masukan dari klien pada periode ini.</p>}
                         </div>
                     </div>
                 </div>
@@ -442,7 +467,7 @@ const ClientReports: React.FC<ClientReportsProps> = ({ clients, leads, projects,
                         <textarea id="feedback" name="feedback" value={manualFeedbackForm.feedback} onChange={handleManualFeedbackChange} className="input-field" placeholder=" " required rows={4}></textarea>
                         <label htmlFor="feedback" className="input-label">Saran / Masukan</label>
                     </div>
-                    <div className="flex justify-end items-center gap-3 pt-4 border-t border-brand-border">
+                    <div className="flex justify-end items-center gap-3 pt-4 border-t border-brand-border sticky bottom-0 bg-brand-surface">
                         <button type="button" onClick={() => setIsFeedbackModalOpen(false)} className="button-secondary">Batal</button>
                         <button type="submit" className="button-primary">Simpan Masukan</button>
                     </div>

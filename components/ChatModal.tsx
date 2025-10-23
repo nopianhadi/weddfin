@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Project, Client, ChatMessage } from '../types';
+import { Project, Client, ChatMessage, Profile } from '../types';
 import { SendIcon, WhatsappIcon } from '../constants';
 import { CHAT_TEMPLATES, cleanPhoneNumber } from '../constants';
+import { useChatTemplates } from '../hooks/useChatTemplates';
 
 interface ChatModalProps {
     isOpen: boolean;
@@ -9,9 +10,11 @@ interface ChatModalProps {
     project: Project;
     client: Client;
     onSendMessage: (projectId: string, messageText: string) => void;
+    userProfile?: Profile;
 }
 
-const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, project, client, onSendMessage }) => {
+const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, project, client, onSendMessage, userProfile }) => {
+    const { templates, processTemplate: processTemplateFunc } = useChatTemplates(userProfile);
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -34,9 +37,10 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, project, client,
     };
 
     const handleSelectTemplate = (template: string) => {
-        const processedMessage = template
-            .replace('{clientName}', client.name)
-            .replace('{projectName}', project.projectName);
+        const processedMessage = processTemplateFunc(template, {
+            clientName: client.name,
+            projectName: project.projectName,
+        });
         setNewMessage(processedMessage);
     };
     
@@ -101,7 +105,7 @@ const ChatModal: React.FC<ChatModalProps> = ({ isOpen, onClose, project, client,
                     <div className="mb-2">
                         <label className="text-xs font-semibold text-brand-text-secondary">Gunakan Template Pesan:</label>
                         <div className="flex flex-wrap gap-2 mt-1">
-                            {CHAT_TEMPLATES.map(template => (
+                            {templates.map(template => (
                                 <button
                                     key={template.id}
                                     type="button"

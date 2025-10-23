@@ -15,7 +15,7 @@ interface InteractiveCashflowChartProps {
     data: ChartDataPoint[];
 }
 
-const InteractiveCashflowChart: React.FC<InteractiveCashflowChartProps> = ({ data }) => {
+const InteractiveCashflowChart: React.FC<InteractiveCashflowChartProps> = React.memo(({ data }) => {
     const [tooltip, setTooltip] = useState<{ x: number; y: number; data: ChartDataPoint } | null>(null);
     const width = 800;
     const height = 300;
@@ -24,7 +24,17 @@ const InteractiveCashflowChart: React.FC<InteractiveCashflowChartProps> = ({ dat
     const chartHeight = height - padding.top - padding.bottom;
 
     if (!data || data.length === 0) {
-        return <div className="text-center text-brand-text-secondary py-16">Tidak ada data untuk ditampilkan.</div>;
+        return (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-24 h-24 rounded-2xl bg-brand-bg border-2 border-dashed border-brand-border flex items-center justify-center mb-4">
+                    <svg className="w-12 h-12 text-brand-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                    </svg>
+                </div>
+                <p className="text-sm font-medium text-brand-text-light mb-1">Belum Ada Data Cashflow</p>
+                <p className="text-xs text-brand-text-secondary">Mulai catat transaksi untuk melihat grafik cashflow</p>
+            </div>
+        );
     }
 
     const maxBarValue = Math.max(...data.flatMap(d => [d.income, d.expense]), 1);
@@ -63,7 +73,7 @@ const InteractiveCashflowChart: React.FC<InteractiveCashflowChartProps> = ({ dat
     });
 
     return (
-        <div className="relative">
+        <div className="relative bg-brand-bg/30 rounded-xl p-4">
             <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto">
                 <defs><clipPath id="chartArea"><rect x={padding.left} y={padding.top} width={chartWidth} height={chartHeight} /></clipPath></defs>
                 
@@ -131,13 +141,31 @@ const InteractiveCashflowChart: React.FC<InteractiveCashflowChartProps> = ({ dat
                 
                 {tooltip && (
                     <g className="pointer-events-none transition-opacity" transform={`translate(${tooltip.x}, ${tooltip.y})`}>
-                       <foreignObject x="-85" y="-125" width="170" height="110">
-                           <div className="p-3 bg-brand-bg border border-gray-700/50 text-white rounded-lg shadow-xl text-xs z-10">
-                                <p className="font-bold mb-2 text-center border-b border-gray-600 pb-1.5">{tooltip.data.label}</p>
-                                <div className="space-y-1">
-                                   <p><span className="inline-block w-2.5 h-2.5 bg-brand-success rounded-sm mr-2 align-middle"></span>Pemasukan: {formatCurrency(tooltip.data.income)}</p>
-                                   <p><span className="inline-block w-2.5 h-2.5 bg-brand-danger rounded-sm mr-2 align-middle"></span>Pengeluaran: {formatCurrency(tooltip.data.expense)}</p>
-                                   <p><span className="inline-block w-2.5 h-2.5 bg-brand-accent rounded-sm mr-2 align-middle"></span>Saldo: {formatCurrency(tooltip.data.balance)}</p>
+                       <foreignObject x="-95" y="-135" width="190" height="125">
+                           <div className="p-3.5 bg-gradient-to-br from-brand-surface to-brand-bg border-2 border-brand-accent/30 text-white rounded-xl shadow-2xl text-xs backdrop-blur-sm">
+                                <p className="font-bold mb-2.5 text-center border-b border-brand-accent/30 pb-2 text-brand-accent">{tooltip.data.label}</p>
+                                <div className="space-y-2">
+                                   <div className="flex items-center justify-between gap-3">
+                                       <div className="flex items-center gap-2">
+                                           <span className="w-3 h-3 bg-brand-success rounded-full"></span>
+                                           <span className="text-brand-text-secondary">Pemasukan</span>
+                                       </div>
+                                       <span className="font-semibold text-brand-success">{formatCurrency(tooltip.data.income)}</span>
+                                   </div>
+                                   <div className="flex items-center justify-between gap-3">
+                                       <div className="flex items-center gap-2">
+                                           <span className="w-3 h-3 bg-brand-danger rounded-full"></span>
+                                           <span className="text-brand-text-secondary">Pengeluaran</span>
+                                       </div>
+                                       <span className="font-semibold text-brand-danger">{formatCurrency(tooltip.data.expense)}</span>
+                                   </div>
+                                   <div className="flex items-center justify-between gap-3 pt-2 border-t border-brand-border">
+                                       <div className="flex items-center gap-2">
+                                           <span className="w-3 h-3 bg-brand-accent rounded-full"></span>
+                                           <span className="text-brand-text-secondary">Saldo</span>
+                                       </div>
+                                       <span className="font-bold text-brand-accent">{formatCurrency(tooltip.data.balance)}</span>
+                                   </div>
                                 </div>
                             </div>
                        </foreignObject>
@@ -146,6 +174,6 @@ const InteractiveCashflowChart: React.FC<InteractiveCashflowChartProps> = ({ dat
             </svg>
         </div>
     );
-};
+});
 
 export default InteractiveCashflowChart;

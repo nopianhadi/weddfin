@@ -5,11 +5,11 @@ import React, { useState, useMemo, useEffect } from 'react';
 const escapeRegExp = (string: string) => {
     return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'); // $& means the whole matched string
 };
-import { Lead, LeadStatus, Client, ClientStatus, Project, Package, AddOn, Transaction, TransactionType, PaymentStatus, Profile, Card, FinancialPocket, ContactChannel, PromoCode, ClientType, ViewType, NavigationAction } from '../types';
+import { Lead, LeadStatus, Client, ClientStatus, Project, Package, AddOn, Transaction, TransactionType, PaymentStatus, Profile, Card, FinancialPocket, ContactChannel, PromoCode, ClientType, ViewType, NavigationAction, Gallery } from '../types';
 import PageHeader from './PageHeader';
 import Modal from './Modal';
 import AILeadsInsight from './AILeadsInsight';
-import { PlusIcon, PencilIcon, Trash2Icon, Share2Icon, DownloadIcon, SendIcon, UsersIcon, TargetIcon, TrendingUpIcon, CalendarIcon, MapPinIcon, QrCodeIcon, MessageSquareIcon, CameraIcon, FileTextIcon, PhoneIncomingIcon, LightbulbIcon, ChevronRightIcon, CheckCircleIcon, EyeIcon } from '../constants';
+import { PlusIcon, PencilIcon, Trash2Icon, Share2Icon, DownloadIcon, SendIcon, UsersIcon, TargetIcon, TrendingUpIcon, CalendarIcon, MapPinIcon, QrCodeIcon, MessageSquareIcon, CameraIcon, FileTextIcon, PhoneIncomingIcon, LightbulbIcon, ChevronRightIcon, CheckCircleIcon, EyeIcon, LinkIcon } from '../constants';
 import StatCard from './StatCard';
 import DonutChart from './DonutChart';
 import { cleanPhoneNumber } from '../constants';
@@ -19,6 +19,7 @@ import { createProject as createProjectRow } from '../services/projects';
 import { createTransaction as createTransactionRow, updateCardBalance } from '../services/transactions';
 import { findCardIdByMeta } from '../services/cards';
 import { upsertProfile } from '../services/profile';
+import { listGalleries } from '../services/galleries';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -74,33 +75,64 @@ interface LeadFormProps {
 const LeadForm: React.FC<LeadFormProps> = ({ formData, handleFormChange, handleSubmit, handleCloseModal, modalMode }) => {
     return (
         <form onSubmit={handleSubmit} className="space-y-4 form-compact form-compact--ios-scale">
-            <div className="input-group">
-                <input type="text" id="name" name="name" value={formData.name} onChange={handleFormChange} className="input-field" placeholder=" " required />
-                <label htmlFor="name" className="input-label">Nama Prospek</label>
+            <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                    <LightbulbIcon className="w-4 h-4" />
+                    Informasi Prospek
+                </h4>
+                <p className="text-xs text-brand-text-secondary">
+                    Catat informasi prospek baru yang menghubungi Anda. Data ini akan membantu Anda melacak dan mengelola calon klien.
+                </p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            <div>
+                <h5 className="text-sm font-semibold text-brand-text-light mb-3">Data Prospek</h5>
                 <div className="input-group">
-                    <select id="contactChannel" name="contactChannel" value={formData.contactChannel} onChange={handleFormChange} className="input-field">
-                        {Object.values(ContactChannel).map(channel => <option key={channel} value={channel}>{channel}</option>)}
-                    </select>
-                    <label htmlFor="contactChannel" className="input-label">Sumber Prospek</label>
-                </div>
-                 <div className="input-group">
-                    <input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="input-field" placeholder=" " />
-                    <label htmlFor="location" className="input-label">Lokasi (Kota)</label>
+                    <input type="text" id="name" name="name" value={formData.name} onChange={handleFormChange} className="input-field" placeholder=" " required />
+                    <label htmlFor="name" className="input-label">Nama Prospek</label>
+                    <p className="text-xs text-brand-text-secondary mt-1">Nama lengkap calon klien</p>
                 </div>
             </div>
-            <div className="input-group">
-                <input type="tel" id="whatsapp" name="whatsapp" value={formData.whatsapp} onChange={handleFormChange} className="input-field" placeholder=" " />
-                <label htmlFor="whatsapp" className="input-label">No. WhatsApp</label>
+
+            <div>
+                <h5 className="text-sm font-semibold text-brand-text-light mb-3">Sumber & Lokasi</h5>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="input-group">
+                        <select id="contactChannel" name="contactChannel" value={formData.contactChannel} onChange={handleFormChange} className="input-field">
+                            {Object.values(ContactChannel).map(channel => <option key={channel} value={channel}>{channel}</option>)}
+                        </select>
+                        <label htmlFor="contactChannel" className="input-label">Sumber Prospek</label>
+                        <p className="text-xs text-brand-text-secondary mt-1">Dari mana prospek menghubungi?</p>
+                    </div>
+                    <div className="input-group">
+                        <input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="input-field" placeholder=" " />
+                        <label htmlFor="location" className="input-label">Lokasi (Kota)</label>
+                        <p className="text-xs text-brand-text-secondary mt-1">Kota domisili prospek</p>
+                    </div>
+                </div>
             </div>
-            <div className="input-group">
-                <textarea id="notes" name="notes" value={formData.notes} onChange={handleFormChange} className="input-field" placeholder=" " rows={4}></textarea>
-                <label htmlFor="notes" className="input-label">Catatan</label>
+
+            <div>
+                <h5 className="text-sm font-semibold text-brand-text-light mb-3">Kontak</h5>
+                <div className="input-group">
+                    <input type="tel" id="whatsapp" name="whatsapp" value={formData.whatsapp} onChange={handleFormChange} className="input-field" placeholder=" " />
+                    <label htmlFor="whatsapp" className="input-label">No. WhatsApp</label>
+                    <p className="text-xs text-brand-text-secondary mt-1">Nomor WhatsApp aktif untuk komunikasi</p>
+                </div>
             </div>
-             <div className="flex justify-end gap-3 pt-4 border-t border-brand-border">
-                <button type="button" onClick={handleCloseModal} className="button-secondary">Batal</button>
-                <button type="submit" className="button-primary">{modalMode === 'add' ? 'Simpan' : 'Update'}</button>
+
+            <div>
+                <h5 className="text-sm font-semibold text-brand-text-light mb-3">Catatan Tambahan</h5>
+                <div className="input-group">
+                    <textarea id="notes" name="notes" value={formData.notes} onChange={handleFormChange} className="input-field" placeholder=" " rows={4}></textarea>
+                    <label htmlFor="notes" className="input-label">Catatan</label>
+                    <p className="text-xs text-brand-text-secondary mt-1">Catat kebutuhan, preferensi, atau informasi penting lainnya</p>
+                </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4 border-t border-brand-border sticky bottom-0 bg-brand-surface">
+                <button type="button" onClick={handleCloseModal} className="button-secondary w-full sm:w-auto">Batal</button>
+                <button type="submit" className="button-primary w-full sm:w-auto">{modalMode === 'add' ? 'Simpan Prospek' : 'Update Prospek'}</button>
             </div>
         </form>
     );
@@ -238,7 +270,7 @@ const ConvertLeadForm: React.FC<ConvertLeadFormProps> = ({ formData, handleFormC
                 </div>
             </div>
 
-            <div className="flex justify-end items-center gap-3 pt-8 mt-8 border-t border-brand-border">
+            <div className="flex justify-end items-center gap-3 pt-8 mt-8 border-t border-brand-border sticky bottom-0 bg-brand-surface">
                 <button type="button" onClick={handleCloseModal} className="button-secondary">Batal</button>
                 <button type="submit" className="button-primary">Konversi Prospek</button>
             </div>
@@ -249,38 +281,53 @@ const ConvertLeadForm: React.FC<ConvertLeadFormProps> = ({ formData, handleFormC
 
 // --- SUB-COMPONENTS ---
 
-const LeadsAnalytics: React.FC<{ leads: Lead[]; onStatCardClick: (stat: string) => void }> = ({ leads, onStatCardClick }) => {
-    const stats = useMemo(() => {
-        const activeLeads = leads.filter(l => l.status === LeadStatus.DISCUSSION || l.status === LeadStatus.FOLLOW_UP);
-        const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const newLeadsThisMonth = leads.filter(l => new Date(l.date) >= startOfMonth).length;
-        const convertedCount = leads.filter(l => l.status === LeadStatus.CONVERTED).length;
-        const conversionRate = leads.length > 0 ? (convertedCount / leads.length) * 100 : 0;
-        return { activeLeads: activeLeads.length, newLeadsThisMonth, conversionRate: conversionRate.toFixed(1) + '%' };
-    }, [leads]);
-    
-    const leadSourceDonutData = useMemo(() => {
-        const leadSourceDistribution = leads.reduce((acc, lead) => {
-            acc[lead.contactChannel] = (acc[lead.contactChannel] || 0) + 1;
+const LeadsAnalytics: React.FC<{ leads: Lead[]; onStatCardClick: (stat: string) => void }> = ({ leads }) => {
+    // Build region-only distribution across all leads
+    const regionDonutData = useMemo(() => {
+        const palette = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#84cc16', '#f43f5e', '#a855f7', '#14b8a6'];
+        const distribution = leads.reduce((acc, l) => {
+            const key = ((l.location || '').trim()) || 'Tidak Diketahui';
+            acc[key] = (acc[key] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
-
-        return Object.entries(leadSourceDistribution)
-            .sort(([, a], [, b]) => (Number(b) - Number(a)))
-            .map(([label, value]) => ({ label, value, color: sourceColors[label as ContactChannel] || '#64748b' }));
+        return Object.entries(distribution)
+            .sort(([, a], [, b]) => Number(b) - Number(a))
+            .map(([label, value], idx) => ({ label, value, color: palette[idx % palette.length] }));
     }, [leads]);
 
+    // Overall status counts
+    const overallCounts = useMemo(() => ({
+        discussion: leads.filter(l => l.status === LeadStatus.DISCUSSION).length,
+        followUp: leads.filter(l => l.status === LeadStatus.FOLLOW_UP).length,
+        converted: leads.filter(l => l.status === LeadStatus.CONVERTED).length,
+        rejected: leads.filter(l => l.status === LeadStatus.REJECTED).length,
+    }), [leads]);
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
-            <div className="lg:col-span-3 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <div onClick={() => onStatCardClick('active')} className="cursor-pointer transition-transform duration-200 hover:scale-105"><StatCard icon={<TargetIcon className="w-6 h-6"/>} title="Prospek Aktif" value={stats.activeLeads.toString()} /></div>
-                <div onClick={() => onStatCardClick('new')} className="cursor-pointer transition-transform duration-200 hover:scale-105"><StatCard icon={<CalendarIcon className="w-6 h-6"/>} title="Prospek Baru (Bulan Ini)" value={stats.newLeadsThisMonth.toString()} /></div>
-                <div className="transition-transform duration-200 hover:scale-105 sm:col-span-2"><StatCard icon={<TrendingUpIcon className="w-6 h-6"/>} title="Tingkat Konversi Keseluruhan" value={stats.conversionRate} /></div>
-            </div>
-            <div className="lg:col-span-2 bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border">
-                <h4 className="text-lg font-bold text-gradient mb-4">Distribusi Sumber Prospek</h4>
-                <DonutChart data={leadSourceDonutData} />
+        <div className="space-y-6 mb-6">
+            <div className="bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border">
+                <div className="flex items-center justify-between mb-4 gap-3">
+                    <h4 className="text-lg font-bold text-gradient">Distribusi Prospek per Wilayah</h4>
+                </div>
+                <DonutChart data={regionDonutData} />
+                <div className="mt-4 grid grid-cols-2 gap-2">
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-brand-border bg-brand-bg/60">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-brand-text-secondary"><EyeIcon className="w-4 h-4" /> {statusConfig[LeadStatus.DISCUSSION].title}</span>
+                        <span className="text-sm font-semibold" style={{ color: statusConfig[LeadStatus.DISCUSSION].color }}>{overallCounts.discussion}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-brand-border bg-brand-bg/60">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-brand-text-secondary"><ChevronRightIcon className="w-4 h-4" /> {statusConfig[LeadStatus.FOLLOW_UP].title}</span>
+                        <span className="text-sm font-semibold" style={{ color: statusConfig[LeadStatus.FOLLOW_UP].color }}>{overallCounts.followUp}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-brand-border bg-brand-bg/60">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-brand-text-secondary"><CheckCircleIcon className="w-4 h-4" /> {statusConfig[LeadStatus.CONVERTED].title}</span>
+                        <span className="text-sm font-semibold" style={{ color: statusConfig[LeadStatus.CONVERTED].color }}>{overallCounts.converted}</span>
+                    </div>
+                    <div className="flex items-center justify-between px-3 py-2 rounded-lg border border-brand-border bg-brand-bg/60">
+                        <span className="inline-flex items-center gap-1.5 text-xs text-brand-text-secondary"><Trash2Icon className="w-4 h-6" /> {statusConfig[LeadStatus.REJECTED].title}</span>
+                        <span className="text-sm font-semibold" style={{ color: statusConfig[LeadStatus.REJECTED].color }}>{overallCounts.rejected}</span>
+                    </div>
+                </div>
             </div>
         </div>
     );
@@ -300,17 +347,17 @@ const LeadCard: React.FC<{
     const renderActions = () => {
         if (lead.status === LeadStatus.DISCUSSION) {
             return (
-                <div className="flex items-center gap-2 leads-card-actions">
-                    <button onClick={(e) => { e.stopPropagation(); onShare('package'); }} className="button-secondary !p-2.5" title="Bagikan Paket"><Share2Icon className="w-4 h-4"/></button>
-                    <button onClick={(e) => { e.stopPropagation(); onNextStatus(); }} className="button-primary !text-xs !px-4 !py-2.5 inline-flex items-center gap-1.5">Follow Up <ChevronRightIcon className="w-4 h-4"/></button>
+                <div className="flex items-center gap-1.5 md:gap-2 leads-card-actions">
+                    <button onClick={(e) => { e.stopPropagation(); onShare('package'); }} className="button-secondary !p-2 md:!p-2.5" title="Bagikan Paket"><Share2Icon className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                    <button onClick={(e) => { e.stopPropagation(); onNextStatus(); }} className="button-primary !text-xs !px-3 md:!px-4 !py-2 md:!py-2.5 inline-flex items-center gap-1">Follow Up <ChevronRightIcon className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
                 </div>
             );
         }
         if (lead.status === LeadStatus.FOLLOW_UP) {
             return (
-                 <div className="flex items-center gap-2 leads-card-actions">
-                    <button onClick={(e) => { e.stopPropagation(); onShare('booking'); }} className="button-secondary !p-2.5" title="Kirim Form Booking"><SendIcon className="w-4 h-4"/></button>
-                    <button onClick={(e) => { e.stopPropagation(); onNextStatus(); }} className="button-primary !text-xs !px-4 !py-2.5 inline-flex items-center gap-1.5">Konversi <CheckCircleIcon className="w-4 h-4"/></button>
+                 <div className="flex items-center gap-1.5 md:gap-2 leads-card-actions">
+                    <button onClick={(e) => { e.stopPropagation(); onShare('booking'); }} className="button-secondary !p-2 md:!p-2.5" title="Kirim Form Booking"><SendIcon className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
+                    <button onClick={(e) => { e.stopPropagation(); onNextStatus(); }} className="button-primary !text-xs !px-3 md:!px-4 !py-2 md:!py-2.5 inline-flex items-center gap-1">Konversi <CheckCircleIcon className="w-3.5 h-3.5 md:w-4 md:h-4"/></button>
                 </div>
             );
         }
@@ -322,22 +369,37 @@ const LeadCard: React.FC<{
             draggable
             onDragStart={e => onDragStart(e, lead.id)}
             onClick={onClick}
-            className="p-4 bg-brand-surface rounded-xl cursor-grab border-l-4 shadow-md hover:shadow-lg transition-shadow leads-card"
+            className="p-3 md:p-4 bg-brand-surface rounded-xl cursor-grab border-l-4 shadow-md hover:shadow-lg transition-all hover:scale-[1.02] active:scale-[0.98] leads-card"
             style={{ borderLeftColor: statusConfig[lead.status].color }}
         >
-            <div className="flex justify-between items-start leads-card-header">
-                <p className="font-semibold text-sm text-brand-text-light">{lead.name}</p>
-                <div className="flex items-center gap-2">
-                    {isHot && <span className="text-xs font-bold" title="Prospek baru (24 jam terakhir)">🔥</span>}
-                    {needsFollowUp && <span className="text-xs font-bold text-yellow-400" title="Perlu Follow Up">⏰</span>}
+            <div className="flex justify-between items-start gap-2 leads-card-header">
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm md:text-base text-brand-text-light truncate">{lead.name}</p>
+                    {lead.location && (
+                        <p className="text-xs text-brand-text-secondary mt-0.5 flex items-center gap-1 truncate">
+                            <MapPinIcon className="w-3 h-3 flex-shrink-0"/>
+                            <span className="truncate">{lead.location}</span>
+                        </p>
+                    )}
+                </div>
+                <div className="flex items-center gap-1.5 flex-shrink-0">
+                    {isHot && <span className="text-base md:text-lg" title="Prospek baru (24 jam terakhir)">🔥</span>}
+                    {needsFollowUp && <span className="text-base md:text-lg" title="Perlu Follow Up">⏰</span>}
                 </div>
             </div>
-            {lead.notes && <p className="text-xs text-brand-text-primary mt-2 pt-2 border-t border-brand-border/50 whitespace-pre-wrap truncate">{lead.notes}</p>}
-            <div className="flex justify-between items-center mt-3 text-xs text-brand-text-secondary">
-                <span className="flex items-center gap-1.5">{getContactChannelIcon(lead.contactChannel)} {getDaysSince(lead.date)}</span>
-                {lead.location && <span className="flex items-center gap-1"><MapPinIcon className="w-3 h-3"/>{lead.location}</span>}
+            {lead.notes && (
+                <p className="text-xs text-brand-text-primary mt-2 pt-2 border-t border-brand-border/50 line-clamp-2">
+                    {lead.notes}
+                </p>
+            )}
+            <div className="flex justify-between items-center mt-2 md:mt-3 text-xs text-brand-text-secondary">
+                <span className="flex items-center gap-1.5">
+                    {getContactChannelIcon(lead.contactChannel)} 
+                    <span className="hidden sm:inline">{getDaysSince(lead.date)}</span>
+                    <span className="sm:hidden">{getDaysSince(lead.date).replace(' lalu', '')}</span>
+                </span>
             </div>
-            <div className="mt-3 pt-3 border-t border-brand-border/50 flex justify-end leads-card-actions">
+            <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-brand-border/50 flex justify-end leads-card-actions">
                 {renderActions()}
             </div>
         </div>
@@ -536,7 +598,9 @@ export const Leads: React.FC<LeadsProps> = ({
             const selectedPackage = packages.find(p => p.id === formData.packageId);
             if (!selectedPackage) { alert('Harap pilih paket.'); return; }
             const selectedAddOns = addOns.filter(addon => formData.selectedAddOnIds.includes(addon.id));
-            const totalBeforeDiscount = selectedPackage.price + selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
+            // Prefer explicit unitPrice chosen in the form (duration-based), fallback to package.default price
+            const packagePrice = formData.unitPrice !== undefined && !isNaN(Number(formData.unitPrice)) ? Number(formData.unitPrice) : (selectedPackage.price || 0);
+            const totalBeforeDiscount = packagePrice + selectedAddOns.reduce((sum, addon) => sum + addon.price, 0);
             let finalDiscountAmount = 0;
             const promoCode = promoCodes.find(p => p.id === formData.promoCodeId);
             if (promoCode) {
@@ -577,6 +641,8 @@ export const Leads: React.FC<LeadsProps> = ({
                     totalCost: totalProject,
                     amountPaid: dpAmount,
                     paymentStatus: dpAmount >= totalProject ? PaymentStatus.LUNAS : (dpAmount > 0 ? PaymentStatus.DP_TERBAYAR : PaymentStatus.BELUM_BAYAR),
+                    durationSelection: formData.durationSelection || undefined,
+                    unitPrice: formData.unitPrice !== undefined ? Number(formData.unitPrice) : undefined,
                     notes: formData.notes || undefined,
                     promoCodeId: formData.promoCodeId || undefined,
                     discountAmount: finalDiscountAmount > 0 ? finalDiscountAmount : undefined,
@@ -683,7 +749,7 @@ export const Leads: React.FC<LeadsProps> = ({
                 </div>
             ) : (
                 <>
-                    <PageHeader title="Calon Pengantin 💍" subtitle="Kelola calon klien Anda dari kontak pertama hingga menjadi proyek."><button onClick={() => setIsInfoModalOpen(true)} className="button-secondary">Pelajari Halaman Ini</button></PageHeader>
+                    <PageHeader title="Calon Pengantin 💍" subtitle="Kelola calon klien Anda dari kontak pertama hingga menjadi proyek." icon={<LightbulbIcon className="w-6 h-6" />}><button onClick={() => setIsInfoModalOpen(true)} className="button-secondary">Pelajari Halaman Ini</button></PageHeader>
                     <AILeadsInsight leads={leads} projects={projects} handleNavigation={handleNavigation} />
                     <LeadsAnalytics leads={leads} onStatCardClick={handleStatCardClick} />
                     <div className="bg-brand-surface p-4 rounded-xl shadow-lg border border-brand-border flex flex-col md:flex-row justify-between items-center gap-4 leads-filter-section">
@@ -709,7 +775,37 @@ export const Leads: React.FC<LeadsProps> = ({
                             </div>
                         </div>
                     </div>
-                    <div className="flex gap-4 overflow-x-auto pb-4 -mx-4 px-4">
+                    {/* Mobile grouped list */}
+                    <div className="md:hidden space-y-3 -mx-4 px-4">
+                        {visibleLeadColumns.map(([status, leadItems]) => {
+                            const statusInfo = statusConfig[status as LeadStatus];
+                            return (
+                                <div key={status} className="bg-brand-bg rounded-2xl border border-brand-border overflow-hidden">
+                                    <div className="p-3 text-sm md:text-base font-semibold text-brand-text-light border-b flex justify-between items-center" style={{ borderColor: statusInfo.color, borderBottomWidth: 2 }}>
+                                        <span className="truncate">{statusInfo.title}</span>
+                                        <span className="text-xs font-normal bg-brand-surface text-brand-text-secondary px-2 py-0.5 rounded-full flex-shrink-0 ml-2">{leadItems.length}</span>
+                                    </div>
+                                    <div className="p-2 space-y-2">
+                                        {leadItems.map(lead => (
+                                            <LeadCard
+                                                key={lead.id}
+                                                lead={lead}
+                                                onDragStart={() => {}}
+                                                onClick={() => handleOpenModal('edit', lead)}
+                                                onNextStatus={() => handleNextStatus(lead.id, lead.status)}
+                                                onShare={(type) => setShareModalState({ type, lead })}
+                                            />
+                                        ))}
+                                        {leadItems.length === 0 && (
+                                            <p className="text-center py-6 text-xs md:text-sm text-brand-text-secondary">Tidak ada prospek.</p>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {/* Desktop kanban columns */}
+                    <div className="hidden md:flex gap-4 overflow-x-auto pb-4 -mx-4 px-4">
                         {visibleLeadColumns.map(([status, leadItems]) => {
                             const statusInfo = statusConfig[status as LeadStatus];
                             return (
@@ -718,7 +814,7 @@ export const Leads: React.FC<LeadsProps> = ({
                                         <span>{statusInfo.title}</span>
                                         <span className="text-sm font-normal bg-brand-surface text-brand-text-secondary px-2.5 py-1 rounded-full">{leadItems.length}</span>
                                     </div>
-                                    <div className="p-3 space-y-3 h-[calc(100vh-550px)] overflow-y-auto">{leadItems.map(lead => <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart} onClick={() => handleOpenModal('edit', lead)} onNextStatus={() => handleNextStatus(lead.id, lead.status)} onShare={(type) => setShareModalState({ type, lead })} />)}</div>
+                                    <div className="p-3 space-y-3 h-[calc(100vh-280px)] overflow-y-auto pr-1">{leadItems.map(lead => <LeadCard key={lead.id} lead={lead} onDragStart={handleDragStart} onClick={() => handleOpenModal('edit', lead)} onNextStatus={() => handleNextStatus(lead.id, lead.status)} onShare={(type) => setShareModalState({ type, lead })} />)}</div>
                                 </div>
                             );
                         })}
@@ -762,6 +858,8 @@ interface ShareMessageModalProps {
 
 const ShareMessageModal: React.FC<ShareMessageModalProps> = ({ type, lead, userProfile, publicPackagesUrl, publicBookingFormUrl, onClose, showNotification, setProfile }) => {
     const [message, setMessage] = useState('');
+    const [galleries, setGalleries] = useState<Gallery[]>([]);
+    const [selectedGalleryId, setSelectedGalleryId] = useState<string>('');
 
     useEffect(() => {
         let template = '';
@@ -773,6 +871,24 @@ const ShareMessageModal: React.FC<ShareMessageModalProps> = ({ type, lead, userP
         }
         setMessage(template);
     }, [type, lead, userProfile, publicPackagesUrl, publicBookingFormUrl]);
+
+    // Load public galleries for quick share
+    useEffect(() => {
+        (async () => {
+            try {
+                const all = await listGalleries();
+                const publicOnes = (all || []).filter(g => g.is_public && g.public_id);
+                setGalleries(publicOnes);
+                if (publicOnes.length > 0) setSelectedGalleryId(publicOnes[0].id);
+            } catch (e) {
+                // Non-blocking; ignore error in share modal
+                console.warn('Failed to load galleries for share modal', e);
+            }
+        })();
+    }, []);
+
+    const selectedGallery = useMemo(() => galleries.find(g => g.id === selectedGalleryId) || null, [galleries, selectedGalleryId]);
+    const selectedGalleryLink = useMemo(() => selectedGallery ? `${window.location.origin}/#/gallery/${selectedGallery.public_id}` : '', [selectedGallery]);
     
     const handleShareToWhatsApp = () => {
         if (!lead.whatsapp) { showNotification('Nomor WhatsApp untuk prospek ini tidak tersedia.'); return; }
@@ -811,12 +927,34 @@ const ShareMessageModal: React.FC<ShareMessageModalProps> = ({ type, lead, userP
     return (
         <Modal isOpen={true} onClose={onClose} title={title}>
             <div className="space-y-4">
-                <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={8} className="input-field w-full"></textarea>
-                <div className="flex justify-between items-center pt-4 border-t border-brand-border">
-                    <button onClick={handleSaveTemplate} className="button-secondary">Simpan Template Ini</button>
-                    <button onClick={handleShareToWhatsApp} className="button-primary inline-flex items-center gap-2"><Share2Icon className="w-4 h-4" /> Bagikan ke WhatsApp</button>
+                <div className="input-group">
+                    <textarea value={message} onChange={(e) => setMessage(e.target.value)} rows={10} className="input-field w-full" placeholder=" "></textarea>
+                    <label className="input-label">Pesan WhatsApp</label>
+                </div>
+                {galleries.length > 0 && (
+                    <div className="p-3 bg-brand-bg rounded-lg border border-brand-border space-y-3">
+                        <div className="flex items-center justify-between">
+                            <span className="text-sm font-medium text-brand-text-light inline-flex items-center gap-2"><LinkIcon className="w-4 h-4"/> Link Galeri</span>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-2 items-center">
+                            <select value={selectedGalleryId} onChange={(e) => setSelectedGalleryId(e.target.value)} className="input-field md:col-span-2">
+                                {galleries.map(g => (<option key={g.id} value={g.id}>{g.title} • {g.region}</option>))}
+                            </select>
+                            <div className="flex gap-2 w-full">
+                                <button type="button" onClick={() => { if (selectedGalleryLink) { navigator.clipboard.writeText(selectedGalleryLink); showNotification('Link galeri disalin'); } }} className="button-secondary flex-1">Salin Link</button>
+                                <button type="button" onClick={() => { if (selectedGalleryLink) setMessage(prev => (prev ? prev + `\n${selectedGalleryLink}` : selectedGalleryLink)); }} className="button-primary flex-1">Masukkan</button>
+                            </div>
+                        </div>
+                        {selectedGalleryLink && (<p className="text-xs text-brand-text-secondary break-all">{selectedGalleryLink}</p>)}
+                    </div>
+                )}
+                <div className="flex flex-col md:flex-row md:justify-between gap-2 pt-4 border-t border-brand-border sticky bottom-0 bg-brand-surface">
+                    <button onClick={handleSaveTemplate} className="button-secondary w-full md:w-auto">Simpan Template Ini</button>
+                    <button onClick={handleShareToWhatsApp} className="button-primary inline-flex items-center gap-2 w-full md:w-auto"><Share2Icon className="w-4 h-4" /> Bagikan ke WhatsApp</button>
                 </div>
             </div>
         </Modal>
     );
 };
+
+export default Leads;

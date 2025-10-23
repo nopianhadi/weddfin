@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { PromoCode, Project } from '../types';
 import PageHeader from './PageHeader';
 import Modal from './Modal';
-import { PlusIcon, PencilIcon, Trash2Icon } from '../constants';
+import { PlusIcon, PencilIcon, Trash2Icon, PackageIcon, DollarSignIcon, CalendarIcon } from '../constants';
 import { createPromoCode, updatePromoCode, deletePromoCode } from '../services/promoCodes';
 
 const formatCurrency = (amount: number) => {
@@ -117,14 +117,15 @@ const PromoCodes: React.FC<PromoCodesProps> = ({ promoCodes, setPromoCodes, proj
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Voucher" subtitle="Buat dan kelola kode diskon untuk klien Anda.">
+            <PageHeader title="Voucher" subtitle="Buat dan kelola kode diskon untuk klien Anda." icon={<PackageIcon className="w-6 h-6" />}>
                 <button onClick={() => handleOpenModal('add')} className="button-primary inline-flex items-center gap-2">
                     <PlusIcon className="w-5 h-5" />
                     Buat Kode Baru
                 </button>
             </PageHeader>
 
-            <div className="bg-brand-surface p-4 rounded-xl shadow-lg border border-brand-border">
+            {/* Desktop Table View */}
+            <div className="hidden md:block bg-brand-surface p-4 rounded-xl shadow-lg border border-brand-border">
                 <div className="overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="text-xs text-brand-text-secondary uppercase">
@@ -166,42 +167,218 @@ const PromoCodes: React.FC<PromoCodesProps> = ({ promoCodes, setPromoCodes, proj
                 </div>
             </div>
 
+            {/* Mobile Card View */}
+            <div className="md:hidden space-y-4">
+                {promoCodes.length === 0 ? (
+                    <div className="bg-brand-surface p-8 rounded-xl text-center border border-brand-border">
+                        <PackageIcon className="w-12 h-12 text-brand-text-secondary mx-auto mb-3 opacity-50" />
+                        <p className="text-brand-text-secondary">Belum ada kode promo. Klik tombol "Buat Kode Baru" untuk memulai.</p>
+                    </div>
+                ) : (
+                    promoCodes.map(code => (
+                        <div key={code.id} className="bg-brand-surface rounded-xl shadow-lg border border-brand-border overflow-hidden">
+                            {/* Header */}
+                            <div className={`p-4 border-b border-brand-border ${code.isActive ? 'bg-gradient-to-r from-green-600/20 to-emerald-600/20' : 'bg-gradient-to-r from-gray-600/20 to-slate-600/20'}`}>
+                                <div className="flex items-start justify-between mb-2">
+                                    <div className="flex-1">
+                                        <p className="text-xs text-brand-text-secondary uppercase tracking-wide mb-1">Kode Promo</p>
+                                        <p className="font-bold text-lg text-brand-text-light tracking-wider">{code.code}</p>
+                                    </div>
+                                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${code.isActive ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'}`}>
+                                        {code.isActive ? 'Aktif' : 'Tidak Aktif'}
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Content */}
+                            <div className="p-4 space-y-3">
+                                {/* Discount Value */}
+                                <div className="flex items-center gap-3 p-3 bg-brand-bg rounded-lg">
+                                    <DollarSignIcon className="w-6 h-6 text-brand-accent flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-xs text-brand-text-secondary">Nilai Diskon</p>
+                                        <p className="text-xl font-bold text-brand-accent">
+                                            {code.discountType === 'percentage'
+                                                ? `${code.discountValue}%`
+                                                : formatCurrency(code.discountValue)}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Usage Stats */}
+                                <div className="grid grid-cols-2 gap-3">
+                                    <div className="p-3 bg-brand-bg rounded-lg">
+                                        <p className="text-xs text-brand-text-secondary mb-1">Penggunaan</p>
+                                        <p className="text-sm font-semibold text-brand-text-light">
+                                            {code.usageCount} / {code.maxUsage ?? '∞'}
+                                        </p>
+                                    </div>
+                                    <div className="p-3 bg-brand-bg rounded-lg">
+                                        <p className="text-xs text-brand-text-secondary mb-1">Kadaluwarsa</p>
+                                        <p className="text-sm font-semibold text-brand-text-light">
+                                            {code.expiryDate ? new Date(code.expiryDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'Tidak ada'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="p-3 bg-brand-bg border-t border-brand-border">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button 
+                                        onClick={() => handleOpenModal('edit', code)} 
+                                        className="flex items-center justify-center gap-2 p-2 text-brand-text-secondary hover:text-blue-400 hover:bg-brand-input rounded-lg transition-colors"
+                                        title="Edit"
+                                    >
+                                        <PencilIcon className="w-5 h-5"/>
+                                        <span className="text-sm font-medium">Edit</span>
+                                    </button>
+                                    <button 
+                                        onClick={() => handleDelete(code.id)} 
+                                        className="flex items-center justify-center gap-2 p-2 text-brand-text-secondary hover:text-red-400 hover:bg-brand-input rounded-lg transition-colors"
+                                        title="Hapus"
+                                    >
+                                        <Trash2Icon className="w-5 h-5"/>
+                                        <span className="text-sm font-medium">Hapus</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    ))
+                )}
+            </div>
+
             <Modal isOpen={isModalOpen} onClose={handleCloseModal} title={modalMode === 'add' ? 'Buat Kode Promo Baru' : 'Edit Kode Promo'}>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4 mb-4">
+                        <h4 className="text-sm font-semibold text-purple-400 mb-2 flex items-center gap-2">
+                            <PackageIcon className="w-4 h-4" />
+                            Informasi Kode Promo
+                        </h4>
+                        <p className="text-xs text-brand-text-secondary">
+                            Buat kode promo unik untuk memberikan diskon kepada klien Anda. Kode ini dapat digunakan saat membuat proyek baru untuk mengurangi total biaya.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Detail Kode Promo</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input 
+                                    type="text" 
+                                    id="code" 
+                                    name="code" 
+                                    value={formData.code} 
+                                    onChange={handleFormChange} 
+                                    className="input-field uppercase" 
+                                    placeholder=" " 
+                                    required 
+                                />
+                                <label htmlFor="code" className="input-label">Kode Promo</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Contoh: PROMO2024, DISKON50K, NEWCLIENT</p>
+                            </div>
+                            <div className="input-group">
+                                <select 
+                                    id="discountType" 
+                                    name="discountType" 
+                                    value={formData.discountType} 
+                                    onChange={handleFormChange} 
+                                    className="input-field"
+                                >
+                                    <option value="percentage">Persentase (%)</option>
+                                    <option value="fixed">Nominal Tetap (Rp)</option>
+                                </select>
+                                <label htmlFor="discountType" className="input-label">Jenis Diskon</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Pilih tipe diskon yang akan diberikan</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Nilai Diskon</h5>
                         <div className="input-group">
-                            <input type="text" id="code" name="code" value={formData.code} onChange={handleFormChange} className="input-field" placeholder=" " required />
-                            <label htmlFor="code" className="input-label">Kode Promo</label>
-                        </div>
-                        <div className="input-group">
-                            <select id="discountType" name="discountType" value={formData.discountType} onChange={handleFormChange} className="input-field">
-                                <option value="percentage">Persentase</option>
-                                <option value="fixed">Nominal Tetap</option>
-                            </select>
-                            <label htmlFor="discountType" className="input-label">Jenis Diskon</label>
-                        </div>
-                    </div>
-                    <div className="input-group">
-                        <input type="number" id="discountValue" name="discountValue" value={formData.discountValue} onChange={handleFormChange} className="input-field" placeholder=" " required />
-                        <label htmlFor="discountValue" className="input-label">{formData.discountType === 'percentage' ? 'Nilai Persentase (%)' : 'Jumlah Diskon (IDR)'}</label>
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="input-group">
-                            <input type="number" id="maxUsage" name="maxUsage" value={formData.maxUsage} onChange={handleFormChange} className="input-field" placeholder=" " />
-                            <label htmlFor="maxUsage" className="input-label">Maks. Penggunaan (kosongkan = ∞)</label>
-                        </div>
-                         <div className="input-group">
-                            <input type="date" id="expiryDate" name="expiryDate" value={formData.expiryDate} onChange={handleFormChange} className="input-field" placeholder=" " />
-                            <label htmlFor="expiryDate" className="input-label">Tanggal Kadaluwarsa (kosongkan = ∞)</label>
+                            <input 
+                                type="number" 
+                                id="discountValue" 
+                                name="discountValue" 
+                                value={formData.discountValue} 
+                                onChange={handleFormChange} 
+                                className="input-field" 
+                                placeholder=" " 
+                                min="0"
+                                max={formData.discountType === 'percentage' ? '100' : undefined}
+                                required 
+                            />
+                            <label htmlFor="discountValue" className="input-label">
+                                {formData.discountType === 'percentage' ? 'Nilai Persentase (%)' : 'Jumlah Diskon (IDR)'}
+                            </label>
+                            <p className="text-xs text-brand-text-secondary mt-1">
+                                {formData.discountType === 'percentage' 
+                                    ? 'Masukkan angka 1-100 untuk persentase diskon (contoh: 10 untuk diskon 10%)' 
+                                    : 'Masukkan jumlah diskon dalam Rupiah (contoh: 50000 untuk diskon Rp 50.000)'}
+                            </p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-3 pt-2">
-                        <input type="checkbox" id="isActive" name="isActive" checked={formData.isActive} onChange={handleFormChange} className="h-4 w-4 rounded" />
-                        <label htmlFor="isActive" className="text-sm font-medium">Aktifkan Kode Promo</label>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Batasan & Masa Berlaku</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input 
+                                    type="number" 
+                                    id="maxUsage" 
+                                    name="maxUsage" 
+                                    value={formData.maxUsage} 
+                                    onChange={handleFormChange} 
+                                    className="input-field" 
+                                    placeholder=" "
+                                    min="0"
+                                />
+                                <label htmlFor="maxUsage" className="input-label">Maksimal Penggunaan</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Kosongkan untuk penggunaan tak terbatas (∞)</p>
+                            </div>
+                            <div className="input-group">
+                                <input 
+                                    type="date" 
+                                    id="expiryDate" 
+                                    name="expiryDate" 
+                                    value={formData.expiryDate} 
+                                    onChange={handleFormChange} 
+                                    className="input-field" 
+                                    placeholder=" " 
+                                />
+                                <label htmlFor="expiryDate" className="input-label">Tanggal Kadaluwarsa</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Kosongkan jika tidak ada batas waktu</p>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex justify-end gap-3 pt-6 border-t border-brand-border">
-                        <button type="button" onClick={handleCloseModal} className="button-secondary">Batal</button>
-                        <button type="submit" className="button-primary">{modalMode === 'add' ? 'Simpan' : 'Update'}</button>
+
+                    <div className="bg-brand-bg p-4 rounded-lg border border-brand-border">
+                        <div className="flex items-start gap-3">
+                            <input 
+                                type="checkbox" 
+                                id="isActive" 
+                                name="isActive" 
+                                checked={formData.isActive} 
+                                onChange={handleFormChange} 
+                                className="h-4 w-4 rounded mt-0.5" 
+                            />
+                            <div className="flex-1">
+                                <label htmlFor="isActive" className="text-sm font-medium text-brand-text-light cursor-pointer block">
+                                    Aktifkan Kode Promo
+                                </label>
+                                <p className="text-xs text-brand-text-secondary mt-1">
+                                    Hanya kode promo yang aktif yang dapat digunakan oleh klien saat membuat proyek baru
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-brand-border">
+                        <button type="button" onClick={handleCloseModal} className="button-secondary w-full sm:w-auto">Batal</button>
+                        <button type="submit" className="button-primary w-full sm:w-auto">
+                            {modalMode === 'add' ? 'Simpan Kode Promo' : 'Update Kode Promo'}
+                        </button>
                     </div>
                 </form>
             </Modal>

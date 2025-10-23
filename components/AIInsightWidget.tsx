@@ -103,8 +103,8 @@ const AIInsightWidget: React.FC<AIInsightWidgetProps> = ({ projects, leads, tran
                     - ID Proyek pertama yang mendekati deadline: ${firstProjectNearingDeadlineId}
                 `;
 
-            const prompt = `
-                    Anda adalah 'Asisten AI Vena', asisten bisnis yang cerdas dan proaktif untuk bisnis fotografi bernama Vena Pictures.
+        const prompt = `
+            Anda adalah 'Asisten AI weddfin', asisten bisnis yang cerdas dan proaktif untuk bisnis fotografi bernama weddfin.
                     Analisis data real-time berikut, berikan ringkasan bisnis yang singkat, ramah, dan memotivasi, serta 3 saran strategis yang paling penting dan bisa langsung ditindaklanjuti.
                     
                     Data Bisnis Saat Ini:
@@ -174,7 +174,7 @@ const AIInsightWidget: React.FC<AIInsightWidgetProps> = ({ projects, leads, tran
             <div className="bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border text-center">
                 <div className="flex items-center justify-center gap-3 mb-4">
                     <SparkleIcon className="w-8 h-8 text-brand-accent" />
-                    <h3 className="font-bold text-xl text-gradient">Asisten AI Vena</h3>
+                    <h3 className="font-bold text-xl text-gradient">Asisten AI weddfin</h3>
                 </div>
                 <p className="text-brand-text-secondary mb-4">Klik tombol di bawah untuk menghasilkan wawasan AI berdasarkan data saat ini.</p>
                 <button onClick={generateInsights} className="button-primary">Hasilkan Wawasan</button>
@@ -210,7 +210,7 @@ const AIInsightWidget: React.FC<AIInsightWidgetProps> = ({ projects, leads, tran
         <div className="bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border">
             <div className="flex items-center gap-3 mb-4">
                 <SparkleIcon className="w-8 h-8 text-brand-accent" />
-                <h3 className="font-bold text-xl text-gradient">Asisten AI Vena</h3>
+                    <h3 className="font-bold text-xl text-gradient">Asisten AI weddfin</h3>
             </div>
             <div className="mb-4">
                 <button onClick={generateInsights} className="button-secondary text-sm">Perbarui Analisis</button>

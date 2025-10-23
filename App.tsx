@@ -1,5 +1,5 @@
 import React, { useState, useEffect, startTransition, lazy, Suspense } from 'react';
-import { ViewType, Client, Project, TeamMember, Transaction, Package, AddOn, TeamProjectPayment, Profile, FinancialPocket, TeamPaymentRecord, Lead, RewardLedgerEntry, User, Card, Asset, ClientFeedback, Contract, RevisionStatus, NavigationAction, Notification, SocialMediaPost, PromoCode, SOP, CardType, PocketType, VendorData, PaymentStatus, TransactionType } from './types';
+import { ViewType, Client, Project, TeamMember, Transaction, Package, AddOn, TeamProjectPayment, Profile, FinancialPocket, TeamPaymentRecord, Lead, RewardLedgerEntry, User, Card, ClientFeedback, Contract, RevisionStatus, NavigationAction, Notification, PromoCode, SOP, CardType, PocketType, VendorData, PaymentStatus, TransactionType } from './types';
 import { HomeIcon, FolderKanbanIcon, UsersIcon, DollarSignIcon, PlusIcon, lightenColor, darkenColor, hexToHsl } from './constants';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -17,16 +17,17 @@ const Projects = lazy(() => import('./components/Projects').then(m => ({ default
 const Freelancers = lazy(() => import('./components/Freelancers').then(m => ({ default: m.Freelancers })));
 const Finance = lazy(() => import('./components/Finance'));
 const Packages = lazy(() => import('./components/Packages'));
-const Assets = lazy(() => import('./components/Assets').then(m => ({ default: m.Assets })));
 const Settings = lazy(() => import('./components/Settings'));
 const CalendarView = lazy(() => import('./components/CalendarView').then(m => ({ default: m.CalendarView })));
 const ClientReports = lazy(() => import('./components/ClientKPI'));
 const Contracts = lazy(() => import('./components/Contracts'));
 const ClientPortal = lazy(() => import('./components/ClientPortal'));
 const FreelancerPortal = lazy(() => import('./components/FreelancerPortal'));
-const SocialPlanner = lazy(() => import('./components/SocialPlanner').then(m => ({ default: m.SocialPlanner })));
+// Social Planner removed
 const PromoCodes = lazy(() => import('./components/PromoCodes'));
 const SOPManagement = lazy(() => import('./components/SOP'));
+const GalleryUpload = lazy(() => import('./components/GalleryUpload'));
+const PublicGallery = lazy(() => import('./components/PublicGallery'));
 const PublicBookingForm = lazy(() => import('./components/PublicBookingForm'));
 const PublicPackages = lazy(() => import('./components/PublicPackages'));
 const PublicFeedbackForm = lazy(() => import('./components/PublicFeedbackForm'));
@@ -35,16 +36,13 @@ const PublicLeadForm = lazy(() => import('./components/PublicLeadForm'));
 const SuggestionForm = lazy(() => import('./components/SuggestionForm'));
 const TestSignature = lazy(() => import('./components/TestSignature'));
 import { listClients } from './services/clients';
-import { listLeads } from './services/leads';
 import { listPromoCodes } from './services/promoCodes';
 import { listCards as listCardsFromDb } from './services/cards';
 import { listPackages } from './services/packages';
 import { listAddOns } from './services/addOns';
-import { listAssets } from './services/assets';
 import { listContracts, updateContract as updateContractInDb } from './services/contracts';
 import { listSOPs } from './services/sops';
 import { listTeamMembers } from './services/teamMembers';
-import { listSocialPosts } from './services/socialPosts';
 import { listProjects, listProjectsWithRelations } from './services/projects';
 import { updateProject as updateProjectInDb } from './services/projects';
 import { getProfile as getProfileFromDb } from './services/profile';
@@ -63,6 +61,7 @@ import { createRevisionSubmission } from './services/revisionSubmissions';
 import { updateRevision as updateRevisionInDb } from './services/projectRevisions';
 import { supabase } from './lib/supabaseClient';
 import { listNotifications as listNotificationsFromDb, createNotification as createNotificationRow, updateNotification as updateNotificationRow } from './services/notifications';
+import { OfflineSyncIndicator } from './components/OfflineSyncIndicator';
 
 const usePersistentState = <T,>(key: string, defaultValue: T): [T, React.Dispatch<React.SetStateAction<T>>] => {
     const [state, setState] = useState<T>(() => {
@@ -145,12 +144,11 @@ const BottomNavBar: React.FC<{ activeView: ViewType; handleNavigation: (view: Vi
             case ViewType.TEAM: import('./components/Freelancers'); break;
             case ViewType.FINANCE: import('./components/Finance'); break;
             case ViewType.CALENDAR: import('./components/CalendarView'); break;
-            case ViewType.SOCIAL_MEDIA_PLANNER: import('./components/SocialPlanner'); break;
             case ViewType.PACKAGES: import('./components/Packages'); break;
-            case ViewType.ASSETS: import('./components/Assets'); break;
             case ViewType.CONTRACTS: import('./components/Contracts'); break;
             case ViewType.PROMO_CODES: import('./components/PromoCodes'); break;
             case ViewType.SOP: import('./components/SOP'); break;
+            case ViewType.GALLERY: import('./components/GalleryUpload'); break;
             case ViewType.CLIENT_REPORTS: import('./components/ClientKPI'); break;
             case ViewType.SETTINGS: import('./components/Settings'); break;
             default: break;
@@ -190,9 +188,10 @@ const BottomNavBar: React.FC<{ activeView: ViewType; handleNavigation: (view: Vi
                             px-2 py-2
                             rounded-xl
                             transition-all duration-200 
-                            min-w-[64px] min-h-[48px]
+                            min-w-[56px] sm:min-w-[64px] min-h-[44px]
                             relative
                             group
+                            overflow-visible
                             ${activeView === item.view 
                                 ? 'text-brand-accent bg-brand-accent/10' 
                                 : 'text-brand-text-secondary hover:text-brand-text-primary hover:bg-brand-input/50 active:bg-brand-input'
@@ -224,7 +223,7 @@ const BottomNavBar: React.FC<{ activeView: ViewType; handleNavigation: (view: Vi
                         
                         {/* Enhanced Label */}
                         <span className={`
-                            text-xs font-semibold
+                            text-[10px] sm:text-xs font-semibold
                             leading-tight
                             transition-all duration-200
                             ${activeView === item.view ? 'font-bold' : ''}
@@ -262,7 +261,26 @@ const App: React.FC = () => {
   // Force light mode globally on app load
   useEffect(() => {
     document.documentElement.classList.remove('dark');
-    try { window.localStorage.setItem('theme', 'light'); } catch {}
+    try { 
+      window.localStorage.setItem('theme', 'light'); 
+    } catch (error) {
+      console.warn('[Theme] Failed to set theme in localStorage:', error);
+    }
+  }, []);
+
+  // Handle URL without hash redirect for gallery
+  useEffect(() => {
+    const currentPath = window.location.pathname;
+    const currentHash = window.location.hash;
+    
+    // If no hash and path starts with /gallery/, redirect to hash-based URL
+    if (!currentHash && currentPath.startsWith('/gallery/')) {
+      const galleryId = currentPath.split('/gallery/')[1];
+      if (galleryId) {
+        window.location.href = `${window.location.origin}/#/gallery/${galleryId}`;
+        return;
+      }
+    }
   }, []);
 
   // --- State Initialization with Persistence ---
@@ -285,11 +303,10 @@ const App: React.FC = () => {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [rewardLedgerEntries, setRewardLedgerEntries] = useState<RewardLedgerEntry[]>([]);
   const [cards, setCards] = useState<Card[]>([]);
-  const [assets, setAssets] = useState<Asset[]>([]);
   const [contracts, setContracts] = useState<Contract[]>([]);
   const [clientFeedback, setClientFeedback] = useState<ClientFeedback[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [socialMediaPosts, setSocialMediaPosts] = useState<SocialMediaPost[]>([]);
+  
   const [promoCodes, setPromoCodes] = useState<PromoCode[]>([]);
   const [sops, setSops] = useState<SOP[]>([]);
   const [packages, setPackages] = useState<Package[]>([]);
@@ -371,7 +388,8 @@ const App: React.FC = () => {
                                 portalAccessId: c.portalAccessId,
                             } as any);
                         } catch (e) {
-                            // ignore per-row errors (e.g., duplicates)
+                            // Ignore per-row errors (e.g., duplicates)
+                            console.warn('[Migration] Failed to migrate client:', c.id, e);
                         }
                     }
                     window.localStorage.setItem(FLAG, 'yes');
@@ -380,86 +398,72 @@ const App: React.FC = () => {
                     console.warn('[Migration] clients migration failed.', err);
                 }
             })();
-        } catch {}
+        } catch (error) {
+            console.warn('[Migration] Failed to parse localStorage data:', error);
+        }
     }, []);
 
   
 
-    // --- [NEW] Realtime: assets ---
-    useEffect(() => {
-        const channel = supabase.channel('realtime-assets')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'assets' }, (payload) => {
-                console.log('Asset change received!', payload);
-                if (payload.eventType === 'INSERT') {
-                    setAssets(current => [payload.new as Asset, ...current]);
-                }
-                if (payload.eventType === 'UPDATE') {
-                    setAssets(current => current.map(a => a.id === payload.new.id ? { ...(a as any), ...(payload.new as any) } : a));
-                }
-                if (payload.eventType === 'DELETE') {
-                    setAssets(current => current.filter(a => a.id !== (payload.old as any).id));
-                }
-            })
-            .subscribe();
-        return () => { supabase.removeChannel(channel); };
-    }, []);
+    // --- [DISABLED FOR PERFORMANCE] Realtime: promo_codes ---
+    // Promo codes rarely change, load once on demand instead
+    // useEffect(() => {
+    //     const channel = supabase.channel('realtime-promo-codes')
+    //         .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, (payload) => {
+    //             console.log('Promo code change received!', payload);
+    //             if (payload.eventType === 'INSERT') {
+    //                 setPromoCodes(current => [payload.new as PromoCode, ...current]);
+    //             }
+    //             if (payload.eventType === 'UPDATE') {
+    //                 setPromoCodes(current => current.map(pc => pc.id === payload.new.id ? { ...(pc as any), ...(payload.new as any) } : pc));
+    //             }
+    //             if (payload.eventType === 'DELETE') {
+    //                 setPromoCodes(current => current.filter(pc => pc.id !== (payload.old as any).id));
+    //             }
+    //         })
+    //         .subscribe();
+    //     return () => { supabase.removeChannel(channel); };
+    // }, []);
 
-    // --- [NEW] Realtime: promo_codes ---
-    useEffect(() => {
-        const channel = supabase.channel('realtime-promo-codes')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'promo_codes' }, (payload) => {
-                console.log('Promo code change received!', payload);
-                if (payload.eventType === 'INSERT') {
-                    setPromoCodes(current => [payload.new as PromoCode, ...current]);
-                }
-                if (payload.eventType === 'UPDATE') {
-                    setPromoCodes(current => current.map(pc => pc.id === payload.new.id ? { ...(pc as any), ...(payload.new as any) } : pc));
-                }
-                if (payload.eventType === 'DELETE') {
-                    setPromoCodes(current => current.filter(pc => pc.id !== (payload.old as any).id));
-                }
-            })
-            .subscribe();
-        return () => { supabase.removeChannel(channel); };
-    }, []);
+    // --- [DISABLED FOR PERFORMANCE] Realtime: packages ---
+    // Packages rarely change, load once on demand instead
+    // useEffect(() => {
+    //     const channel = supabase.channel('realtime-packages')
+    //         .on('postgres_changes', { event: '*', schema: 'public', table: 'packages' }, (payload) => {
+    //             console.log('Package change received!', payload);
+    //             if (payload.eventType === 'INSERT') {
+    //                 setPackages(current => [payload.new as Package, ...current]);
+    //             }
+    //             if (payload.eventType === 'UPDATE') {
+    //                 setPackages(current => current.map(p => p.id === payload.new.id ? { ...(p as any), ...(payload.new as any) } : p));
+    //             }
+    //             if (payload.eventType === 'DELETE') {
+    //                 setPackages(current => current.filter(p => p.id !== (payload.old as any).id));
+    //             }
+    //         })
+    //         .subscribe();
+    //     return () => { supabase.removeChannel(channel); };
+    // }, []);
 
-    // --- [NEW] Realtime: packages ---
-    useEffect(() => {
-        const channel = supabase.channel('realtime-packages')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'packages' }, (payload) => {
-                console.log('Package change received!', payload);
-                if (payload.eventType === 'INSERT') {
-                    setPackages(current => [payload.new as Package, ...current]);
-                }
-                if (payload.eventType === 'UPDATE') {
-                    setPackages(current => current.map(p => p.id === payload.new.id ? { ...(p as any), ...(payload.new as any) } : p));
-                }
-                if (payload.eventType === 'DELETE') {
-                    setPackages(current => current.filter(p => p.id !== (payload.old as any).id));
-                }
-            })
-            .subscribe();
-        return () => { supabase.removeChannel(channel); };
-    }, []);
-
-    // --- [NEW] Realtime: add_ons ---
-    useEffect(() => {
-        const channel = supabase.channel('realtime-add-ons')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'add_ons' }, (payload) => {
-                console.log('Add-on change received!', payload);
-                if (payload.eventType === 'INSERT') {
-                    setAddOns(current => [payload.new as AddOn, ...current]);
-                }
-                if (payload.eventType === 'UPDATE') {
-                    setAddOns(current => current.map(a => a.id === payload.new.id ? { ...(a as any), ...(payload.new as any) } : a));
-                }
-                if (payload.eventType === 'DELETE') {
-                    setAddOns(current => current.filter(a => a.id !== (payload.old as any).id));
-                }
-            })
-            .subscribe();
-        return () => { supabase.removeChannel(channel); };
-    }, []);
+    // --- [DISABLED FOR PERFORMANCE] Realtime: add_ons ---
+    // Add-ons rarely change, load once on demand instead
+    // useEffect(() => {
+    //     const channel = supabase.channel('realtime-add-ons')
+    //         .on('postgres_changes', { event: '*', schema: 'public', table: 'add_ons' }, (payload) => {
+    //             console.log('Add-on change received!', payload);
+    //             if (payload.eventType === 'INSERT') {
+    //                 setAddOns(current => [payload.new as AddOn, ...current]);
+    //             }
+    //             if (payload.eventType === 'UPDATE') {
+    //                 setAddOns(current => current.map(a => a.id === payload.new.id ? { ...(a as any), ...(payload.new as any) } : a));
+    //             }
+    //             if (payload.eventType === 'DELETE') {
+    //                 setAddOns(current => current.filter(a => a.id !== (payload.old as any).id));
+    //             }
+    //         })
+    //         .subscribe();
+    //     return () => { supabase.removeChannel(channel); };
+    // }, []);
 
     // --- [NEW] Recalculate each freelancer's rewardBalance from reward ledger entries ---
     useEffect(() => {
@@ -578,32 +582,34 @@ const App: React.FC = () => {
         };
     }, [appData.contracts, appData.loaded.contracts]);
 
-    // --- Sync SOPs from lazy loading hook with REALTIME ---
+    // --- [DISABLED FOR PERFORMANCE] Sync SOPs from lazy loading hook with REALTIME ---
+    // SOPs rarely change, load once on demand instead
     useEffect(() => {
         if (appData.loaded.sops) {
             setSops(appData.sops);
         }
 
-        const channel = supabase.channel('realtime-sops')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'sops' }, (payload) => {
-                console.log('SOP change received!', payload);
-                if (payload.eventType === 'INSERT') {
-                    setSops(current => [payload.new as SOP, ...current]);
-                }
-                if (payload.eventType === 'UPDATE') {
-                    setSops(current =>
-                        current.map(s => s.id === payload.new.id ? { ...s, ...payload.new } as SOP : s)
-                    );
-                }
-                if (payload.eventType === 'DELETE') {
-                    setSops(current => current.filter(s => s.id !== (payload.old as any).id));
-                }
-            })
-            .subscribe();
+        // Realtime disabled for performance
+        // const channel = supabase.channel('realtime-sops')
+        //     .on('postgres_changes', { event: '*', schema: 'public', table: 'sops' }, (payload) => {
+        //         console.log('SOP change received!', payload);
+        //         if (payload.eventType === 'INSERT') {
+        //             setSops(current => [payload.new as SOP, ...current]);
+        //         }
+        //         if (payload.eventType === 'UPDATE') {
+        //             setSops(current =>
+        //                 current.map(s => s.id === payload.new.id ? { ...s, ...payload.new } as SOP : s)
+        //             );
+        //         }
+        //         if (payload.eventType === 'DELETE') {
+        //             setSops(current => current.filter(s => s.id !== (payload.old as any).id));
+        //         }
+        //     })
+        //     .subscribe();
 
-        return () => {
-            supabase.removeChannel(channel);
-        };
+        // return () => {
+        //     supabase.removeChannel(channel);
+        // };
     }, [appData.sops, appData.loaded.sops]);
 
     // --- Sync transactions from lazy loading hook with REALTIME ---
@@ -850,10 +856,12 @@ const App: React.FC = () => {
         return () => { isMounted = false; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
-    // --- [NEW] Load leads from Supabase on init and clear legacy localStorage ---
+    // --- [NEW] Load leads from Supabase on init with realtime ---
     useEffect(() => {
         try { window.localStorage.removeItem('vena-leads'); } catch {}
         let isMounted = true;
+        
+        // 1. Initial fetch
         (async () => {
             try {
                 const remoteLeads = await listLeadsFromDb();
@@ -863,13 +871,35 @@ const App: React.FC = () => {
                 console.warn('[Supabase] Failed to fetch leads.', e);
             }
         })();
-        return () => { isMounted = false; };
+        
+        // 2. Realtime subscription
+        const channel = supabase.channel('realtime-leads')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'leads' }, (payload) => {
+                console.log('Lead change received!', payload);
+                if (payload.eventType === 'INSERT') {
+                    setLeads(current => [payload.new as Lead, ...current]);
+                }
+                if (payload.eventType === 'UPDATE') {
+                    setLeads(current => current.map(l => l.id === payload.new.id ? { ...l, ...payload.new } as Lead : l));
+                }
+                if (payload.eventType === 'DELETE') {
+                    setLeads(current => current.filter(l => l.id !== (payload.old as any).id));
+                }
+            })
+            .subscribe();
+        
+        return () => { 
+            isMounted = false;
+            supabase.removeChannel(channel);
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // --- [NEW] Load client feedback from Supabase on init ---
+    // --- [NEW] Load client feedback from Supabase on init with realtime ---
     useEffect(() => {
         let isMounted = true;
+        
+        // 1. Initial fetch
         (async () => {
             try {
                 const remote = await listClientFeedbackFromDb();
@@ -879,7 +909,27 @@ const App: React.FC = () => {
                 console.warn('[Supabase] Failed to fetch client feedback.', e);
             }
         })();
-        return () => { isMounted = false; };
+        
+        // 2. Realtime subscription
+        const channel = supabase.channel('realtime-client-feedback')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'client_feedback' }, (payload) => {
+                console.log('Client feedback change received!', payload);
+                if (payload.eventType === 'INSERT') {
+                    setClientFeedback(current => [payload.new as ClientFeedback, ...current].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                }
+                if (payload.eventType === 'UPDATE') {
+                    setClientFeedback(current => current.map(f => f.id === payload.new.id ? { ...f, ...payload.new } as ClientFeedback : f));
+                }
+                if (payload.eventType === 'DELETE') {
+                    setClientFeedback(current => current.filter(f => f.id !== (payload.old as any).id));
+                }
+            })
+            .subscribe();
+        
+        return () => { 
+            isMounted = false;
+            supabase.removeChannel(channel);
+        };
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
@@ -987,56 +1037,7 @@ const App: React.FC = () => {
 
     
 
-    // --- [NEW] Load assets from Supabase on init ---
-    useEffect(() => {
-        let isMounted = true;
-        (async () => {
-            try {
-                const remoteAssets = await listAssets();
-                if (!isMounted) return;
-                if (Array.isArray(remoteAssets) && remoteAssets.length) {
-                    setAssets(remoteAssets as any);
-                }
-            } catch (e) {
-                console.warn('[Supabase] Failed to fetch assets, falling back to local data.', e);
-            }
-        })();
-        return () => { isMounted = false; };
-    }, []);
-
-    // --- [NEW] Load social posts from Supabase on init with REALTIME ---
-    useEffect(() => {
-        let isMounted = true;
-        (async () => {
-            try {
-                const remote = await listSocialPosts();
-                if (!isMounted) return;
-                setSocialMediaPosts(Array.isArray(remote) ? remote : []);
-            } catch (e) {
-                console.warn('[Supabase] Failed to fetch social posts.', e);
-            }
-        })();
-
-        const channel = supabase.channel('realtime-social-posts')
-            .on('postgres_changes', { event: '*', schema: 'public', table: 'social_media_posts' }, (payload) => {
-                console.log('Social post change received!', payload);
-                if (payload.eventType === 'INSERT') {
-                    setSocialMediaPosts(current => [payload.new as SocialMediaPost, ...current]);
-                }
-                if (payload.eventType === 'UPDATE') {
-                    setSocialMediaPosts(current => current.map(p => p.id === payload.new.id ? { ...(p as any), ...(payload.new as any) } : p));
-                }
-                if (payload.eventType === 'DELETE') {
-                    setSocialMediaPosts(current => current.filter(p => p.id !== (payload.old as any).id));
-                }
-            })
-            .subscribe();
-
-        return () => {
-            isMounted = false;
-            supabase.removeChannel(channel);
-        };
-    }, []);
+    // removed: initial assets load from Supabase
 
     // --- [NEW] Load SOPs from Supabase on init ---
     useEffect(() => {
@@ -1111,7 +1112,7 @@ const App: React.FC = () => {
         const newRoute = window.location.hash || '#/home';
         setRoute(newRoute);
         if (!isAuthenticated) {
-            const isPublicRoute = newRoute.startsWith('#/public') || newRoute.startsWith('#/feedback') || newRoute.startsWith('#/suggestion-form') || newRoute.startsWith('#/revision-form') || newRoute.startsWith('#/portal') || newRoute.startsWith('#/freelancer-portal') || newRoute.startsWith('#/login') || newRoute === '#/home' || newRoute === '#';
+            const isPublicRoute = newRoute.startsWith('#/public') || newRoute.startsWith('#/gallery') || newRoute.startsWith('#/feedback') || newRoute.startsWith('#/suggestion-form') || newRoute.startsWith('#/revision-form') || newRoute.startsWith('#/portal') || newRoute.startsWith('#/freelancer-portal') || newRoute.startsWith('#/login') || newRoute === '#/home' || newRoute === '#';
             if (!isPublicRoute) {
                 window.location.hash = '#/home';
             }
@@ -1181,9 +1182,36 @@ const App: React.FC = () => {
       }
   }, [activeView, appData.loaded.clients, appData.loading.clients, appData.loaded.projects, appData.loading.projects, appData.loaded.teamMembers, appData.loading.teamMembers, appData.loaded.contracts, appData.loading.contracts, appData.loaded.sops, appData.loading.sops, appData.loaded.transactions, appData.loading.transactions]);
   
+  // --- Pre-load critical data for Dashboard when authenticated ---
+  useEffect(() => {
+      if (!isAuthenticated) return;
+      
+      // Dashboard needs: clients, transactions, teamMembers, contracts
+      // Pre-load them in background to make Dashboard instant
+      const preloadDashboardData = async () => {
+          // Small delay to avoid blocking initial render
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+          if (!appData.loaded.clients && !appData.loading.clients) {
+              appData.loadClients();
+          }
+          if (!appData.loaded.transactions && !appData.loading.transactions) {
+              appData.loadTransactions();
+          }
+          if (!appData.loaded.teamMembers && !appData.loading.teamMembers) {
+              appData.loadTeamMembers();
+          }
+          if (!appData.loaded.contracts && !appData.loading.contracts) {
+              appData.loadContracts();
+          }
+      };
+      
+      preloadDashboardData();
+  }, [isAuthenticated, appData]);
+  
   useEffect(() => {
         const styleElement = document.getElementById('public-theme-style');
-        const isPublicRoute = route.startsWith('#/public') || route.startsWith('#/portal') || route.startsWith('#/freelancer-portal');
+        const isPublicRoute = route.startsWith('#/public') || route.startsWith('#/gallery') || route.startsWith('#/portal') || route.startsWith('#/freelancer-portal');
         
         document.body.classList.toggle('app-theme', !isPublicRoute);
         document.body.classList.toggle('public-page-body', isPublicRoute);
@@ -1268,9 +1296,7 @@ const App: React.FC = () => {
       [ViewType.TEAM]: 'team',
       [ViewType.FINANCE]: 'finance',
     [ViewType.CALENDAR]: 'calendar',
-    [ViewType.SOCIAL_MEDIA_PLANNER]: 'social-media-planner',
     [ViewType.PACKAGES]: 'packages',
-    [ViewType.ASSETS]: 'assets',
       [ViewType.CONTRACTS]: 'contracts',
       [ViewType.PROMO_CODES]: 'promo-codes',
       [ViewType.SOP]: 'sop',
@@ -1338,7 +1364,6 @@ const App: React.FC = () => {
           leads={leads}
           teamProjectPayments={teamProjectPayments}
           packages={packages}
-          assets={assets}
           clientFeedback={clientFeedback}
           contracts={contracts}
           currentUser={currentUser}
@@ -1427,7 +1452,11 @@ const App: React.FC = () => {
               } as any);
               // Update card balance
               if (destinationCardId) {
-                try { await updateCardBalance(destinationCardId, amount); } catch {}
+                try { 
+                  await updateCardBalance(destinationCardId, amount); 
+                } catch (error) {
+                  console.error('[Payment] Failed to update card balance:', error);
+                }
                 setCards(prev => prev.map(c => c.id === destinationCardId ? { ...c, balance: (c.balance || 0) + amount } : c));
               }
               // Update project payment fields
@@ -1438,7 +1467,11 @@ const App: React.FC = () => {
               // Optimistic UI
               setProjects(prev => prev.map(p => p.id === projectId ? { ...p, amountPaid: newAmountPaid, paymentStatus: newPaymentStatus } : p));
               // Persist to Supabase
-              try { await updateProjectInDb(projectId, { amountPaid: newAmountPaid, paymentStatus: newPaymentStatus } as any); } catch {}
+              try { 
+                await updateProjectInDb(projectId, { amountPaid: newAmountPaid, paymentStatus: newPaymentStatus } as any); 
+              } catch (error) {
+                console.error('[Payment] Failed to update project in database:', error);
+              }
               // Update transactions list
               setTransactions(prev => [tx, ...prev].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
               showNotification('Pembayaran berhasil dicatat.');
@@ -1471,6 +1504,8 @@ const App: React.FC = () => {
           showNotification={showNotification}
           cards={cards}
           setCards={setCards}
+          pockets={pockets}
+          setPockets={setPockets}
             />
           </DataLoadingWrapper>
         );
@@ -1529,8 +1564,6 @@ const App: React.FC = () => {
         );
       case ViewType.PACKAGES:
         return <Packages packages={packages} setPackages={setPackages} addOns={addOns} setAddOns={setAddOns} projects={projects} profile={profile} />;
-      case ViewType.ASSETS:
-        return <Assets assets={assets} setAssets={setAssets} profile={profile} showNotification={showNotification} />;
       case ViewType.CONTRACTS:
         return (
           <DataLoadingWrapper
@@ -1589,10 +1622,10 @@ const App: React.FC = () => {
             setFeedback={setClientFeedback}
             showNotification={showNotification}
         />;
-      case ViewType.SOCIAL_MEDIA_PLANNER:
-        return <SocialPlanner posts={socialMediaPosts} setPosts={setSocialMediaPosts} projects={projects} showNotification={showNotification} />;
       case ViewType.PROMO_CODES:
         return <PromoCodes promoCodes={promoCodes} setPromoCodes={setPromoCodes} projects={projects} showNotification={showNotification} />;
+      case ViewType.GALLERY:
+        return <GalleryUpload userProfile={profile} showNotification={showNotification} />;
       default:
         return <div />;
     }
@@ -1619,7 +1652,7 @@ const App: React.FC = () => {
     />;
   }
   if (route.startsWith('#/public-booking')) {
-    const allDataForForm = { clients, projects, teamMembers, transactions, teamProjectPayments, teamPaymentRecords, pockets, profile, leads, rewardLedgerEntries, cards, assets, contracts, clientFeedback, notifications, socialMediaPosts, promoCodes, sops, packages, addOns };
+    const allDataForForm = { clients, projects, teamMembers, transactions, teamProjectPayments, teamPaymentRecords, pockets, profile, leads, rewardLedgerEntries, cards, contracts, clientFeedback, notifications, promoCodes, sops, packages, addOns };
     return <PublicBookingForm {...allDataForForm} userProfile={profile} showNotification={showNotification} setClients={setClients} setProjects={setProjects} setTransactions={setTransactions} setCards={setCards} setPockets={setPockets} setPromoCodes={setPromoCodes} setLeads={setLeads} addNotification={addNotification} />;
   }
   if (route.startsWith('#/public-lead-form')) {
@@ -1631,6 +1664,10 @@ const App: React.FC = () => {
   if (route.startsWith('#/suggestion-form')) return <SuggestionForm setLeads={setLeads} />;
   if (route.startsWith('#/revision-form')) return <PublicRevisionForm projects={projects} teamMembers={teamMembers} />;
   if (route.startsWith('#/test-signature')) return <TestSignature />;
+  if (route.startsWith('#/gallery/')) {
+    const galleryId = route.split('/')[2];
+    return <PublicGallery galleryId={galleryId} />;
+  }
   if (route.startsWith('#/portal/')) {
     // Normalize accessId: cut off after next '/' or any query/hash, and decode
     const raw = route.split('/portal/')[1] || '';
@@ -1849,6 +1886,9 @@ const App: React.FC = () => {
       />
       
       <BottomNavBar activeView={activeView} handleNavigation={handleNavigation} />
+      
+      {/* Offline Sync Indicator */}
+      <OfflineSyncIndicator />
     </div>
   );
 };

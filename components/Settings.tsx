@@ -1,12 +1,11 @@
 import React, { useState } from 'react';
-import { Profile, Transaction, Project, User, ViewType, ProjectStatusConfig, SubStatusConfig, PublicPageConfig, Package } from '../types';
+import { Profile, Transaction, Project, User, ViewType, ProjectStatusConfig, SubStatusConfig, Package } from '../types';
 import PageHeader from './PageHeader';
 import Modal from './Modal';
-import { PencilIcon, PlusIcon, Trash2Icon, KeyIcon, UsersIcon, ListIcon, FolderKanbanIcon, Share2Icon, FileTextIcon } from '../constants';
+import { PencilIcon, PlusIcon, Trash2Icon, KeyIcon, UsersIcon, ListIcon, FolderKanbanIcon, FileTextIcon, SettingsIcon } from '../constants';
 import { NAV_ITEMS } from '../constants';
 import { upsertProfile } from '../services/profile';
 import { createUser, updateUser, deleteUser } from '../services/users';
-import { uploadGalleryImage, deleteGalleryImage } from '../services/storage';
 
 // Helper Component for Toggle Switches
 const ToggleSwitch: React.FC<{ enabled: boolean; onChange: () => void; id?: string }> = ({ enabled, onChange, id }) => (
@@ -44,19 +43,19 @@ const CategoryManager: React.FC<{
     };
 
     const renderCategoryItem = (category: string) => (
-        <div key={category} className="flex items-center justify-between p-2.5 bg-brand-bg rounded-md">
-            <span className="text-sm text-brand-text-primary">{category}</span>
-            <div className="flex items-center space-x-2">
-                <button type="button" onClick={() => onEdit(category)} className="p-1 text-brand-text-secondary hover:text-brand-accent" title="Edit"><PencilIcon className="w-4 h-4" /></button>
-                <button type="button" onClick={() => onDelete(category)} className="p-1 text-brand-text-secondary hover:text-brand-danger" title="Hapus"><Trash2Icon className="w-4 h-4" /></button>
+        <div key={category} className="flex items-center justify-between p-2 md:p-2.5 bg-brand-bg rounded-md">
+            <span className="text-xs md:text-sm text-brand-text-primary truncate flex-1 mr-2">{category}</span>
+            <div className="flex items-center space-x-1 md:space-x-2 flex-shrink-0">
+                <button type="button" onClick={() => onEdit(category)} className="p-1 text-brand-text-secondary hover:text-brand-accent" title="Edit"><PencilIcon className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
+                <button type="button" onClick={() => onDelete(category)} className="p-1 text-brand-text-secondary hover:text-brand-danger" title="Hapus"><Trash2Icon className="w-3.5 h-3.5 md:w-4 md:h-4" /></button>
             </div>
         </div>
     );
 
     return (
         <div>
-            <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3 mb-4">{title}</h3>
-            <div className="flex gap-2 mb-4">
+            <h3 className="text-sm md:text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-2 md:pb-3 mb-3 md:mb-4">{title}</h3>
+            <div className="flex flex-col sm:flex-row gap-2 mb-3 md:mb-4">
                  <div className="input-group flex-grow !mt-0">
                     <input
                         type="text"
@@ -69,8 +68,10 @@ const CategoryManager: React.FC<{
                     />
                     <label htmlFor={`input-${title.replace(/\s/g, '')}`} className="input-label">{placeholder}</label>
                 </div>
-                <button onClick={onAddOrUpdate} className="button-primary h-fit mt-2">{editingValue ? 'Update' : 'Tambah'}</button>
-                {editingValue && <button onClick={onCancelEdit} className="button-secondary h-fit mt-2">Batal</button>}
+                <div className="flex gap-2">
+                    <button onClick={onAddOrUpdate} className="button-primary h-fit mt-2 flex-1 sm:flex-none">{editingValue ? 'Update' : 'Tambah'}</button>
+                    {editingValue && <button onClick={onCancelEdit} className="button-secondary h-fit mt-2 flex-1 sm:flex-none">Batal</button>}
+                </div>
             </div>
             <div className="space-y-2 max-h-60 overflow-y-auto pr-2">
                 {categories.map(cat => renderCategoryItem(cat))}
@@ -204,29 +205,29 @@ const ProjectStatusManager: React.FC<{
 
     return (
         <div>
-            <div className="flex justify-between items-center mb-6">
-                <h3 className="text-lg font-semibold text-brand-text-light">Manajemen Status Proyek</h3>
-                <button onClick={() => handleOpenModal('add')} className="button-primary inline-flex items-center gap-2">
-                    <PlusIcon className="w-5 h-5"/> Tambah Status
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
+                <h3 className="text-sm md:text-lg font-semibold text-brand-text-light">Manajemen Status Proyek</h3>
+                <button onClick={() => handleOpenModal('add')} className="button-primary inline-flex items-center gap-2 w-full sm:w-auto text-sm md:text-base">
+                    <PlusIcon className="w-4 h-4 md:w-5 md:h-5"/> Tambah Status
                 </button>
             </div>
-            <div className="space-y-4">
+            <div className="space-y-3 md:space-y-4">
                 {config.map(status => (
-                    <div key={status.id} className="p-4 bg-brand-bg rounded-lg">
+                    <div key={status.id} className="p-3 md:p-4 bg-brand-bg rounded-lg">
                         <div className="flex justify-between items-center">
-                            <div className="flex items-center gap-3">
-                                <span className="w-4 h-4 rounded-full" style={{ backgroundColor: status.color }}></span>
-                                <span className="font-semibold text-brand-text-light">{status.name}</span>
+                            <div className="flex items-center gap-2 md:gap-3">
+                                <span className="w-3 h-3 md:w-4 md:h-4 rounded-full flex-shrink-0" style={{ backgroundColor: status.color }}></span>
+                                <span className="font-semibold text-sm md:text-base text-brand-text-light">{status.name}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <button onClick={() => handleOpenModal('edit', status)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full"><PencilIcon className="w-5 h-5"/></button>
-                                <button onClick={() => handleDelete(status.id)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full"><Trash2Icon className="w-5 h-5"/></button>
+                            <div className="flex items-center gap-1 md:gap-2">
+                                <button onClick={() => handleOpenModal('edit', status)} className="p-1.5 md:p-2 text-brand-text-secondary hover:bg-brand-input rounded-full"><PencilIcon className="w-4 h-4 md:w-5 md:h-5"/></button>
+                                <button onClick={() => handleDelete(status.id)} className="p-1.5 md:p-2 text-brand-text-secondary hover:bg-brand-input rounded-full"><Trash2Icon className="w-4 h-4 md:w-5 md:h-5"/></button>
                             </div>
                         </div>
                         {status.subStatuses.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-brand-border/50 pl-7 space-y-2">
+                            <div className="mt-2 md:mt-3 pt-2 md:pt-3 border-t border-brand-border/50 pl-5 md:pl-7 space-y-1.5 md:space-y-2">
                                 {status.subStatuses.map((sub, index) => (
-                                    <div key={index}><p className="text-sm font-medium text-brand-text-primary">{sub.name}</p><p className="text-xs text-brand-text-secondary">{sub.note}</p></div>
+                                    <div key={index}><p className="text-xs md:text-sm font-medium text-brand-text-primary">{sub.name}</p><p className="text-[10px] md:text-xs text-brand-text-secondary">{sub.note}</p></div>
                                 ))}
                             </div>
                         )}
@@ -328,86 +329,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
         const { name, value } = e.target;
         setProfile(prev => ({ ...prev, [name]: value }));
     };
-    
-    const handlePublicPageChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-        const { name, value } = e.target;
-        setProfile(prev => ({
-            ...prev,
-            publicPageConfig: {
-                ...prev.publicPageConfig,
-                [name]: value
-            }
-        }));
-    };
-    
-    const handleGalleryImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (e.target.files && e.target.files.length > 0) {
-            const files = Array.from(e.target.files) as File[];
-            
-            // Validate file sizes and types
-            for (const file of files) {
-                if (file.size > 10 * 1024 * 1024) { // 10MB limit
-                    alert(`File ${file.name} terlalu besar. Maksimal 10MB per file.`);
-                    return;
-                }
-                if (!file.type.startsWith('image/')) {
-                    alert(`File ${file.name} bukan gambar yang valid.`);
-                    return;
-                }
-            }
-            
-            try {
-                // Upload files to Supabase Storage
-                const uploadPromises = files.map((file: File) => uploadGalleryImage(file));
-                const uploadedUrls = await Promise.all(uploadPromises);
-                
-                // Update local state
-                const updatedProfile = {
-                    ...profile,
-                    publicPageConfig: {
-                        ...profile.publicPageConfig,
-                        galleryImages: [...profile.publicPageConfig.galleryImages, ...uploadedUrls]
-                    }
-                };
-                
-                // Save to database
-                const savedProfile = await upsertProfile(updatedProfile);
-                setProfile(savedProfile);
-                
-                alert(`Berhasil mengunggah ${files.length} gambar ke galeri.`);
-            } catch (error) {
-                console.error('Error uploading gallery images:', error);
-                const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-                alert(`Gagal mengunggah gambar galeri: ${errorMessage}`);
-            }
-        }
-    };
 
-    const removeGalleryImage = async (index: number) => {
-        const imageToRemove = profile.publicPageConfig.galleryImages[index];
-        
-        try {
-            // Delete from Supabase Storage if it's a URL (not base64)
-            if (imageToRemove && !imageToRemove.startsWith('data:')) {
-                await deleteGalleryImage(imageToRemove);
-            }
-            
-            // Update local state and save to database
-            const updatedProfile = {
-                ...profile,
-                publicPageConfig: {
-                    ...profile.publicPageConfig,
-                    galleryImages: profile.publicPageConfig.galleryImages.filter((_, i) => i !== index)
-                }
-            };
-            
-            const savedProfile = await upsertProfile(updatedProfile);
-            setProfile(savedProfile);
-        } catch (error) {
-            console.error('Error removing gallery image:', error);
-            alert('Gagal menghapus gambar dari galeri.');
-        }
-    };
 
 
     const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -426,13 +348,16 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
     };
 
     const handleNotificationChange = (key: keyof Profile['notificationSettings']) => {
-        setProfile(p => ({
-            ...p,
-            notificationSettings: {
-                ...p.notificationSettings,
-                [key]: !p.notificationSettings[key]
-            }
-        }));
+        setProfile(p => {
+            const base = p.notificationSettings ?? { newProject: false, paymentConfirmation: false, deadlineReminder: false };
+            return {
+                ...p,
+                notificationSettings: {
+                    ...base,
+                    [key]: !(p.notificationSettings?.[key] ?? false),
+                },
+            };
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -820,7 +745,6 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
     
     const tabs = [
         { id: 'profile', label: 'Profil Saya', icon: UsersIcon, adminOnly: false },
-        { id: 'publicPage', label: 'Halaman Publik', icon: Share2Icon, adminOnly: false },
         { id: 'users', label: 'Pengguna', icon: KeyIcon, adminOnly: true },
         { id: 'categories', label: 'Kustomisasi Kategori', icon: ListIcon, adminOnly: false },
         { id: 'projectStatus', label: 'Status Proyek', icon: FolderKanbanIcon, adminOnly: true },
@@ -835,9 +759,9 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
             case 'profile':
                  return (
                     <form onSubmit={handleSubmit} className="form-compact form-compact--ios-scale">
-                        <div className="space-y-6">
-                            <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3">Informasi Publik</h3>
-                            <div className="space-y-4 max-w-2xl mx-auto">
+                        <div className="space-y-4 md:space-y-6">
+                            <h3 className="text-sm md:text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-2 md:pb-3">Informasi Publik</h3>
+                            <div className="space-y-3 md:space-y-4 max-w-2xl mx-auto">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4">
                                     <div className="input-group"><input id="fullName" type="text" name="fullName" value={profile.fullName || ''} onChange={handleInputChange} className="input-field" placeholder=" "/><label htmlFor="fullName" className="input-label">Nama Lengkap</label></div>
                                     <div className="input-group"><input id="companyName" type="text" name="companyName" value={profile.companyName || ''} onChange={handleInputChange} className="input-field" placeholder=" "/><label htmlFor="companyName" className="input-label">Nama Perusahaan</label></div>
@@ -853,39 +777,39 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                                 <div className="input-group"><textarea id="briefingTemplate" name="briefingTemplate" value={profile.briefingTemplate} onChange={handleInputChange} className="input-field" placeholder=" " rows={3}></textarea><label htmlFor="briefingTemplate" className="input-label">Template Pesan Briefing Tim</label></div>
                             </div>
 
-                            <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3 mt-8">Branding & Kustomisasi</h3>
-                            <div className="space-y-4 max-w-2xl mx-auto">
+                            <h3 className="text-sm md:text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-2 md:pb-3 mt-6 md:mt-8">Branding & Kustomisasi</h3>
+                            <div className="space-y-3 md:space-y-4 max-w-2xl mx-auto">
                                 <div>
-                                    <label htmlFor="logoUpload" className="text-sm font-medium text-brand-text-secondary">Logo Perusahaan (u/ Invoice)</label>
-                                    <div className="mt-2 flex items-center gap-4">
+                                    <label htmlFor="logoUpload" className="text-xs md:text-sm font-medium text-brand-text-secondary">Logo Perusahaan (u/ Invoice)</label>
+                                    <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
                                         {profile.logoBase64 ? 
-                                            <img src={profile.logoBase64} alt="Logo preview" className="h-16 w-16 object-contain rounded-md bg-brand-bg p-1 border border-brand-border" />
-                                            : <div className="h-16 w-16 rounded-md bg-brand-bg border border-brand-border flex items-center justify-center text-xs text-brand-text-secondary">No Logo</div>
+                                            <img src={profile.logoBase64} alt="Logo preview" className="h-12 w-12 md:h-16 md:w-16 object-contain rounded-md bg-brand-bg p-1 border border-brand-border flex-shrink-0" />
+                                            : <div className="h-12 w-12 md:h-16 md:w-16 rounded-md bg-brand-bg border border-brand-border flex items-center justify-center text-[10px] md:text-xs text-brand-text-secondary flex-shrink-0">No Logo</div>
                                         }
                                         <input 
                                             id="logoUpload" 
                                             type="file" 
                                             name="logoBase64" 
                                             onChange={handleLogoChange} 
-                                            className="block w-full text-sm text-brand-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer" 
+                                            className="block w-full text-xs md:text-sm text-brand-text-secondary file:mr-2 md:file:mr-4 file:py-1.5 md:file:py-2 file:px-3 md:file:px-4 file:rounded-full file:border-0 file:text-xs md:file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer" 
                                             accept="image/png, image/jpeg, image/svg+xml" 
                                         />
                                     </div>
                                 </div>
                                 <div>
-                                    <label htmlFor="brandColor" className="text-sm font-medium text-brand-text-secondary">Warna Aksen Merek</label>
-                                    <div className="mt-2 flex items-center gap-4">
-                                        <div className="relative">
+                                    <label htmlFor="brandColor" className="text-xs md:text-sm font-medium text-brand-text-secondary">Warna Aksen Merek</label>
+                                    <div className="mt-2 flex flex-col sm:flex-row items-start sm:items-center gap-3 md:gap-4">
+                                        <div className="relative flex-shrink-0">
                                             <input
                                                 id="brandColor"
                                                 type="color"
                                                 name="brandColor"
                                                 value={profile.brandColor || '#3b82f6'}
                                                 onChange={handleInputChange}
-                                                className="w-16 h-10 p-1 bg-brand-bg border border-brand-border rounded-md cursor-pointer"
+                                                className="w-12 h-8 md:w-16 md:h-10 p-1 bg-brand-bg border border-brand-border rounded-md cursor-pointer"
                                             />
                                         </div>
-                                        <p className="text-sm text-brand-text-secondary">Pilih warna yang mewakili merek Anda. Warna ini akan diterapkan di seluruh aplikasi, portal klien, dan dokumen.</p>
+                                        <p className="text-xs md:text-sm text-brand-text-secondary">Pilih warna yang mewakili merek Anda. Warna ini akan diterapkan di seluruh aplikasi, portal klien, dan dokumen.</p>
                                     </div>
                                 </div>
                                 <div className="input-group !mt-6"><textarea id="termsAndConditions" name="termsAndConditions" value={profile.termsAndConditions || ''} onChange={handleInputChange} className="input-field" placeholder=" " rows={15}></textarea><label htmlFor="termsAndConditions" className="input-label">Syarat & Ketentuan (u/ Invoice)</label></div>
@@ -901,20 +825,20 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                                 </div>
                             </div>
 
-                            <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3 mt-8">Notifikasi</h3>
-                            <div className="space-y-4 max-w-2xl mx-auto">
-                                <div className="flex justify-between items-center"><label htmlFor="notif-newProject">Proyek Baru Dibuat</label><ToggleSwitch id="notif-newProject" enabled={profile.notificationSettings.newProject} onChange={() => handleNotificationChange('newProject')} /></div>
-                                <div className="flex justify-between items-center"><label htmlFor="notif-paymentConfirmation">Konfirmasi Pembayaran Diterima</label><ToggleSwitch id="notif-paymentConfirmation" enabled={profile.notificationSettings.paymentConfirmation} onChange={() => handleNotificationChange('paymentConfirmation')} /></div>
-                                <div className="flex justify-between items-center"><label htmlFor="notif-deadlineReminder">Pengingat Deadline Proyek</label><ToggleSwitch id="notif-deadlineReminder" enabled={profile.notificationSettings.deadlineReminder} onChange={() => handleNotificationChange('deadlineReminder')} /></div>
+                            <h3 className="text-sm md:text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-2 md:pb-3 mt-6 md:mt-8">Notifikasi</h3>
+                            <div className="space-y-3 md:space-y-4 max-w-2xl mx-auto">
+                                <div className="flex justify-between items-center gap-3"><label htmlFor="notif-newProject" className="text-xs md:text-sm">Proyek Baru Dibuat</label><ToggleSwitch id="notif-newProject" enabled={!!profile.notificationSettings?.newProject} onChange={() => handleNotificationChange('newProject')} /></div>
+                                <div className="flex justify-between items-center gap-3"><label htmlFor="notif-paymentConfirmation" className="text-xs md:text-sm">Konfirmasi Pembayaran Diterima</label><ToggleSwitch id="notif-paymentConfirmation" enabled={!!profile.notificationSettings?.paymentConfirmation} onChange={() => handleNotificationChange('paymentConfirmation')} /></div>
+                                <div className="flex justify-between items-center gap-3"><label htmlFor="notif-deadlineReminder" className="text-xs md:text-sm">Pengingat Deadline Proyek</label><ToggleSwitch id="notif-deadlineReminder" enabled={!!profile.notificationSettings?.deadlineReminder} onChange={() => handleNotificationChange('deadlineReminder')} /></div>
                             </div>
 
-                            <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3 mt-8">Keamanan</h3>
-                            <div className="space-y-4 max-w-2xl mx-auto">
-                                <div className="flex justify-between items-center"><label htmlFor="security-2fa">Autentikasi Dua Faktor (2FA)</label><ToggleSwitch id="security-2fa" enabled={profile.securitySettings.twoFactorEnabled} onChange={() => setProfile(p => ({ ...p, securitySettings: { ...p.securitySettings, twoFactorEnabled: !p.securitySettings.twoFactorEnabled } }))} /></div>
+                            <h3 className="text-sm md:text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-2 md:pb-3 mt-6 md:mt-8">Keamanan</h3>
+                            <div className="space-y-3 md:space-y-4 max-w-2xl mx-auto">
+                                <div className="flex justify-between items-center gap-3"><label htmlFor="security-2fa" className="text-xs md:text-sm">Autentikasi Dua Faktor (2FA)</label><ToggleSwitch id="security-2fa" enabled={!!profile.securitySettings?.twoFactorEnabled} onChange={() => setProfile(p => ({ ...p, securitySettings: { twoFactorEnabled: !(p.securitySettings?.twoFactorEnabled ?? false) } }))} /></div>
                             </div>
 
-                            <div className="text-right mt-8 pt-6 border-t border-gray-700/50">
-                                <button type="submit" className="button-primary relative">
+                            <div className="text-right mt-6 md:mt-8 pt-4 md:pt-6 border-t border-gray-700/50">
+                                <button type="submit" className="button-primary relative w-full md:w-auto">
                                     Simpan Perubahan
                                     {showSuccess && <span className="absolute -right-4 -top-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full animate-fade-in-out">✓</span>}
                                 </button>
@@ -922,75 +846,24 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                         </div>
                     </form>
                 );
-            case 'publicPage':
-                return (
-                    <form onSubmit={handleSubmit} className="form-compact form-compact--ios-scale">
-                        <div className="space-y-6">
-                            <h3 className="text-lg font-semibold text-brand-text-light border-b border-gray-700/50 pb-3">Desain Halaman Paket Publik</h3>
-                            
-                            {/* Template Selector */}
-                            <div>
-                                <label className="text-sm font-medium text-brand-text-secondary">Pilih Template</label>
-                                <div className="mt-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                    {(['classic', 'modern', 'gallery'] as const).map(template => (
-                                        <div key={template} onClick={() => handlePublicPageChange({ target: { name: 'template', value: template } } as any)} className={`p-2 rounded-lg border-2 cursor-pointer ${profile.publicPageConfig.template === template ? 'border-brand-accent' : 'border-transparent'}`}>
-                                            <div className="bg-brand-bg h-24 rounded-md flex items-center justify-center text-xs text-brand-text-secondary capitalize font-semibold border border-brand-border">{template}</div>
-                                        </div>
-                                    ))}
-                                </div>
-                            </div>
-
-                            {/* Custom Text */}
-                            <div className="space-y-4">
-                                <div className="input-group"><input type="text" id="publicTitle" name="title" value={profile.publicPageConfig.title} onChange={handlePublicPageChange} className="input-field" placeholder=" "/><label htmlFor="publicTitle" className="input-label">Judul Halaman</label></div>
-                                <div className="input-group"><textarea id="publicIntro" name="introduction" value={profile.publicPageConfig.introduction} onChange={handlePublicPageChange} className="input-field" placeholder=" " rows={4}></textarea><label htmlFor="publicIntro" className="input-label">Teks Perkenalan</label></div>
-                            </div>
-                            
-                            {/* Gallery Uploader */}
-                            <div>
-                                <label className="text-sm font-medium text-brand-text-secondary">Galeri Foto</label>
-                                <div className="mt-2 p-4 border border-dashed border-brand-border rounded-lg">
-                                    <input type="file" id="galleryUpload" multiple onChange={handleGalleryImageUpload} accept="image/*" className="block w-full text-sm text-brand-text-secondary file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-brand-accent/10 file:text-brand-accent hover:file:bg-brand-accent/20 cursor-pointer"/>
-                                    <div className="mt-4 grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
-                                        {profile.publicPageConfig.galleryImages.map((img, index) => (
-                                            <div key={index} className="relative group">
-                                                <img src={img} alt={`Gallery image ${index + 1}`} className="w-full h-24 object-cover rounded-md" />
-                                                <button type="button" onClick={() => removeGalleryImage(index)} className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <Trash2Icon className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-
-                             <div className="text-right mt-8 pt-6 border-t border-gray-700/50">
-                                <button type="submit" className="button-primary relative">
-                                    Simpan Pengaturan Halaman
-                                    {showSuccess && <span className="absolute -right-4 -top-2 text-xs bg-green-500 text-white px-2 py-0.5 rounded-full animate-fade-in-out">✓</span>}
-                                </button>
-                            </div>
-                        </div>
-                    </form>
-                );
             case 'users':
-                if (currentUser?.role !== 'Admin') return <p>Anda tidak memiliki akses ke halaman ini.</p>;
+                if (currentUser?.role !== 'Admin') return <p className="text-sm md:text-base text-brand-text-secondary">Anda tidak memiliki akses ke halaman ini.</p>;
                 return (
                     <div>
-                        <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-lg font-semibold text-brand-text-light">Manajemen Pengguna</h3>
-                            <button onClick={() => handleOpenUserModal('add')} className="button-primary inline-flex items-center gap-2"><PlusIcon className="w-5 h-5"/>Tambah Pengguna</button>
+                        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4 md:mb-6">
+                            <h3 className="text-sm md:text-lg font-semibold text-brand-text-light">Manajemen Pengguna</h3>
+                            <button onClick={() => handleOpenUserModal('add')} className="button-primary inline-flex items-center gap-2 w-full sm:w-auto text-sm md:text-base"><PlusIcon className="w-4 h-4 md:w-5 md:h-5"/>Tambah Pengguna</button>
                         </div>
-                        <div className="space-y-3">
+                        <div className="space-y-2 md:space-y-3">
                             {users.map(user => (
-                                <div key={user.id} className="p-3 bg-brand-bg rounded-lg flex justify-between items-center">
-                                    <div>
-                                        <p className="font-semibold text-brand-text-light">{user.fullName}</p>
-                                        <p className="text-sm text-brand-text-secondary">{user.email} - <span className="font-medium">{user.role}</span></p>
+                                <div key={user.id} className="p-3 md:p-4 bg-brand-bg rounded-lg flex justify-between items-center gap-3">
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-semibold text-sm md:text-base text-brand-text-light truncate">{user.fullName}</p>
+                                        <p className="text-xs md:text-sm text-brand-text-secondary truncate">{user.email} - <span className="font-medium">{user.role}</span></p>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <button onClick={() => handleOpenUserModal('edit', user)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Edit"><PencilIcon className="w-5 h-5"/></button>
-                                        <button onClick={() => handleDeleteUser(user.id)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Hapus"><Trash2Icon className="w-5 h-5"/></button>
+                                    <div className="flex items-center gap-1 md:gap-2 flex-shrink-0">
+                                        <button onClick={() => handleOpenUserModal('edit', user)} className="p-1.5 md:p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Edit"><PencilIcon className="w-4 h-4 md:w-5 md:h-5"/></button>
+                                        <button onClick={() => handleDeleteUser(user.id)} className="p-1.5 md:p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Hapus"><Trash2Icon className="w-4 h-4 md:w-5 md:h-5"/></button>
                                     </div>
                                 </div>
                             ))}
@@ -999,7 +872,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                 );
             case 'categories':
                 return (
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6 lg:gap-8">
                         <CategoryManager 
                             title="Kategori Pemasukan"
                             categories={profile.incomeCategories}
@@ -1075,7 +948,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                     </div>
                 );
             case 'projectStatus':
-                 if (currentUser?.role !== 'Admin') return <p>Anda tidak memiliki akses ke halaman ini.</p>;
+                 if (currentUser?.role !== 'Admin') return <p className="text-sm md:text-base text-brand-text-secondary">Anda tidak memiliki akses ke halaman ini.</p>;
                 return (
                     <ProjectStatusManager
                         config={profile.projectStatusConfig}
@@ -1090,10 +963,34 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
     };
 
     return (
-        <div className="space-y-6">
-            <PageHeader title="Pengaturan" subtitle="Kelola profil, pengguna, dan kustomisasi aplikasi Anda." />
-            <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                <aside className="lg:col-span-1">
+        <div className="space-y-4 md:space-y-6">
+            <PageHeader title="Pengaturan" subtitle="Kelola profil, pengguna, dan kustomisasi aplikasi Anda." icon={<SettingsIcon className="w-6 h-6" />} />
+            
+            {/* Mobile Tab Navigation - Horizontal Scroll */}
+            <div className="lg:hidden">
+                <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide -mx-4 px-4 md:-mx-0 md:px-0">
+                    {tabs
+                        .filter(tab => !(tab.adminOnly && currentUser?.role !== 'Admin'))
+                        .map(tab => (
+                            <button
+                                key={tab.id}
+                                onClick={() => setActiveTab(tab.id)}
+                                className={`flex-shrink-0 inline-flex items-center gap-1.5 md:gap-2 px-3 md:px-4 py-2 md:py-2.5 rounded-full font-medium text-xs md:text-sm transition-all duration-200 ${
+                                    activeTab === tab.id
+                                        ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30'
+                                        : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                                }`}
+                            >
+                                <tab.icon className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                                <span className="whitespace-nowrap">{tab.label}</span>
+                            </button>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 md:gap-6 lg:gap-8">
+                {/* Desktop Sidebar Navigation */}
+                <aside className="hidden lg:block lg:col-span-1">
                     <nav className="space-y-1 sticky top-24">
                         {tabs
                             .filter(tab => !(tab.adminOnly && currentUser?.role !== 'Admin'))
@@ -1103,7 +1000,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                                     onClick={() => setActiveTab(tab.id)}
                                     className={`w-full flex items-center px-4 py-3 text-sm font-semibold rounded-lg transition-all duration-200 text-left ${
                                         activeTab === tab.id
-                                            ? 'bg-brand-accent text-white'
+                                            ? 'bg-brand-accent text-white shadow-lg'
                                             : 'text-brand-text-secondary hover:bg-brand-input hover:text-brand-text-light'
                                     }`}
                                 >
@@ -1113,7 +1010,7 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
                         ))}
                     </nav>
                 </aside>
-                <main className="lg:col-span-3 bg-brand-surface p-6 rounded-2xl shadow-lg min-h-[60vh]">
+                <main className="lg:col-span-3 bg-brand-surface p-3 md:p-4 lg:p-6 rounded-xl md:rounded-2xl shadow-lg min-h-[60vh]">
                     {renderTabContent()}
                 </main>
             </div>
@@ -1121,29 +1018,84 @@ const Settings: React.FC<SettingsProps> = ({ profile, setProfile, transactions, 
             <Modal isOpen={isUserModalOpen} onClose={handleCloseUserModal} title={userModalMode === 'add' ? 'Tambah Pengguna Baru' : 'Edit Pengguna'}>
                 <form onSubmit={handleUserFormSubmit} className="space-y-4 form-compact form-compact--ios-scale">
                     {userFormError && <p className="text-red-500 text-sm bg-red-500/10 p-3 rounded-md">{userFormError}</p>}
-                    <div className="input-group"><input type="text" name="fullName" value={userForm.fullName} onChange={handleUserFormChange} className="input-field" placeholder=" " required /><label className="input-label">Nama Lengkap</label></div>
-                    <div className="input-group"><input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} className="input-field" placeholder=" " required /><label className="input-label">Email</label></div>
-                    <div className="input-group"><input type="password" name="password" value={userForm.password} onChange={handleUserFormChange} className="input-field" placeholder=" " required={userModalMode === 'add'} /><label className="input-label">{userModalMode === 'add' ? 'Kata Sandi' : 'Kata Sandi Baru (kosongkan jika tidak berubah)'}</label></div>
-                    <div className="input-group"><input type="password" name="confirmPassword" value={userForm.confirmPassword} onChange={handleUserFormChange} className="input-field" placeholder=" " required={!!userForm.password} /><label className="input-label">Konfirmasi Kata Sandi</label></div>
-                    <div className="input-group"><select name="role" value={userForm.role} onChange={handleUserFormChange} className="input-field"><option value="Member">Member</option><option value="Admin">Admin</option></select><label className="input-label">Peran</label></div>
+                    
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                        <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                            <KeyIcon className="w-4 h-4" />
+                            Informasi Pengguna
+                        </h4>
+                        <p className="text-xs text-brand-text-secondary">
+                            Tambahkan pengguna baru yang dapat mengakses sistem. Atur peran dan izin akses sesuai kebutuhan.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Data Pribadi</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input type="text" name="fullName" value={userForm.fullName} onChange={handleUserFormChange} className="input-field" placeholder=" " required />
+                                <label className="input-label">Nama Lengkap</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Nama lengkap pengguna</p>
+                            </div>
+                            <div className="input-group">
+                                <input type="email" name="email" value={userForm.email} onChange={handleUserFormChange} className="input-field" placeholder=" " required />
+                                <label className="input-label">Email</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Email untuk login ke sistem</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Keamanan</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input type="password" name="password" value={userForm.password} onChange={handleUserFormChange} className="input-field" placeholder=" " required={userModalMode === 'add'} />
+                                <label className="input-label">{userModalMode === 'add' ? 'Kata Sandi' : 'Kata Sandi Baru'}</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">{userModalMode === 'add' ? 'Minimal 6 karakter' : 'Kosongkan jika tidak berubah'}</p>
+                            </div>
+                            <div className="input-group">
+                                <input type="password" name="confirmPassword" value={userForm.confirmPassword} onChange={handleUserFormChange} className="input-field" placeholder=" " required={!!userForm.password} />
+                                <label className="input-label">Konfirmasi Kata Sandi</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Ketik ulang kata sandi</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Peran & Izin Akses</h5>
+                        <div className="input-group">
+                            <select name="role" value={userForm.role} onChange={handleUserFormChange} className="input-field">
+                                <option value="Member">Member</option>
+                                <option value="Admin">Admin</option>
+                            </select>
+                            <label className="input-label">Peran</label>
+                            <p className="text-xs text-brand-text-secondary mt-1">Admin memiliki akses penuh, Member dapat dikustomisasi</p>
+                        </div>
+                    </div>
                     
                     {userForm.role === 'Member' && (
-                        <div>
-                            <h4 className="text-sm font-medium text-brand-text-secondary mb-2">Izin Akses Halaman</h4>
-                            <div className="grid grid-cols-2 md:grid-cols-3 gap-2 p-3 bg-brand-bg rounded-lg">
+                        <div className="bg-brand-bg p-4 rounded-lg border border-brand-border">
+                            <h5 className="text-sm font-semibold text-brand-text-light mb-3">Izin Akses Halaman</h5>
+                            <p className="text-xs text-brand-text-secondary mb-3">Pilih halaman mana saja yang dapat diakses oleh pengguna ini</p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                                 {NAV_ITEMS.filter(item => item.view !== ViewType.SETTINGS).map(item => (
                                     <label key={item.view} className="flex items-center gap-2 p-2 rounded-md hover:bg-brand-input cursor-pointer">
-                                        <input type="checkbox" checked={userForm.permissions.includes(item.view)} onChange={e => handlePermissionsChange(item.view, e.target.checked)} />
-                                        <span className="text-sm">{item.label}</span>
+                                        <input 
+                                            type="checkbox" 
+                                            checked={userForm.permissions.includes(item.view)} 
+                                            onChange={e => handlePermissionsChange(item.view, e.target.checked)}
+                                            className="h-4 w-4 rounded"
+                                        />
+                                        <span className="text-sm text-brand-text-primary">{item.label}</span>
                                     </label>
                                 ))}
                             </div>
                         </div>
                     )}
 
-                    <div className="flex justify-end gap-3 pt-6 border-t border-brand-border">
-                        <button type="button" onClick={handleCloseUserModal} className="button-secondary">Batal</button>
-                        <button type="submit" className="button-primary">{userModalMode === 'add' ? 'Simpan Pengguna' : 'Update Pengguna'}</button>
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-brand-border">
+                        <button type="button" onClick={handleCloseUserModal} className="button-secondary w-full sm:w-auto">Batal</button>
+                        <button type="submit" className="button-primary w-full sm:w-auto">{userModalMode === 'add' ? 'Simpan Pengguna' : 'Update Pengguna'}</button>
                     </div>
                 </form>
             </Modal>

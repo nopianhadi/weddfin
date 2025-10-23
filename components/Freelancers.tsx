@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+                        import React, { useState, useMemo, useEffect } from 'react';
 import { TeamMember, TeamProjectPayment, Profile, Transaction, TransactionType, TeamPaymentRecord, Project, RewardLedgerEntry, Card, FinancialPocket, PocketType, PerformanceNoteType, PerformanceNote, NavigationAction, CardType } from '../types';
 import PageHeader from './PageHeader';
 import Modal from './Modal';
@@ -897,36 +897,36 @@ export const Freelancers: React.FC<FreelancersProps> = ({
     
         return (
             <div id={`payment-slip-content-${record.id}`} className="printable-content bg-slate-50 font-sans text-slate-800 printable-area avoid-break">
-                <div className="max-w-4xl mx-auto bg-white p-8 sm:p-12 shadow-lg">
-                    <header className="flex justify-between items-start mb-12">
+                <div className="max-w-4xl mx-auto bg-white p-3 sm:p-8 shadow-lg">
+                    <header className="flex justify-between items-start mb-4 sm:mb-8">
                         <div>
-                            <h1 className="text-3xl font-extrabold text-slate-900">{userProfile.companyName}</h1>
-                            <p className="text-sm text-slate-500">{userProfile.address}</p>
+                            <h1 className="text-sm sm:text-2xl font-extrabold text-slate-900">{userProfile.companyName}</h1>
+                            <p className="text-[10px] sm:text-sm text-slate-500">{userProfile.address}</p>
                         </div>
                         <div className="text-right">
-                            <h2 className="text-2xl font-bold uppercase text-slate-400 tracking-widest">Slip Pembayaran</h2>
-                            <p className="text-sm text-slate-500 mt-1">No: <span className="font-semibold text-slate-700">{record.recordNumber}</span></p>
-                            <p className="text-sm text-slate-500">Tanggal: <span className="font-semibold text-slate-700">{formatDate(record.date)}</span></p>
+                            <h2 className="text-xs sm:text-xl font-bold uppercase text-slate-400 tracking-wide">Slip Pembayaran</h2>
+                            <p className="text-[9px] sm:text-xs text-slate-500 mt-1">No: <span className="font-semibold text-slate-700">{record.recordNumber}</span></p>
+                            <p className="text-[9px] sm:text-xs text-slate-500">Tanggal: <span className="font-semibold text-slate-700">{formatDate(record.date)}</span></p>
                         </div>
                     </header>
     
-                    <section className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12 doc-header-grid">
-                        <div className="bg-slate-50 p-6 rounded-xl"><h3 className="text-xs font-semibold uppercase text-slate-400 mb-2">Dibayarkan Kepada</h3><p className="font-bold text-slate-800">{freelancer.name}</p><p className="text-sm text-slate-600">{freelancer.role}</p><p className="text-sm text-slate-600">No. Rek: {freelancer.noRek}</p></div>
-                        <div className="bg-slate-50 p-6 rounded-xl"><h3 className="text-xs font-semibold uppercase text-slate-400 mb-2">Dibayarkan Oleh</h3><p className="font-bold text-slate-800">{userProfile.companyName}</p><p className="text-sm text-slate-600">{userProfile.bankAccount}</p></div>
+                    <section className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 sm:mb-8 doc-header-grid">
+                        <div className="bg-slate-50 p-2 sm:p-4 rounded-lg"><h3 className="text-[9px] sm:text-xs font-semibold uppercase text-slate-400 mb-1">Dibayarkan Kepada</h3><p className="font-bold text-xs sm:text-base text-slate-800">{freelancer.name}</p><p className="text-[10px] sm:text-sm text-slate-600">{freelancer.role}</p><p className="text-[10px] sm:text-sm text-slate-600">No. Rek: {freelancer.noRek}</p></div>
+                        <div className="bg-slate-50 p-2 sm:p-4 rounded-lg"><h3 className="text-[9px] sm:text-xs font-semibold uppercase text-slate-400 mb-1">Dibayarkan Oleh</h3><p className="font-bold text-xs sm:text-base text-slate-800">{userProfile.companyName}</p><p className="text-[10px] sm:text-sm text-slate-600">{userProfile.bankAccount}</p></div>
                     </section>
     
                     <section>
-                        <h3 className="font-semibold text-slate-800 mb-3">Rincian Pembayaran</h3>
+                        <h3 className="font-semibold text-xs sm:text-base text-slate-800 mb-2">Rincian Pembayaran</h3>
                         <table className="w-full text-left responsive-table">
-                            <thead><tr className="border-b-2 border-slate-200"><th className="p-3 text-sm font-semibold uppercase text-slate-500">Proyek</th><th className="p-3 text-sm font-semibold uppercase text-slate-500">Peran</th><th className="p-3 text-sm font-semibold uppercase text-slate-500 text-right">Fee</th></tr></thead>
-                            <tbody className="divide-y divide-slate-200">
+                            <thead><tr className="border-b border-slate-200"><th className="p-1.5 sm:p-3 text-[9px] sm:text-xs font-semibold uppercase text-slate-500">Proyek</th><th className="p-1.5 sm:p-3 text-[9px] sm:text-xs font-semibold uppercase text-slate-500">Peran</th><th className="p-1.5 sm:p-3 text-[9px] sm:text-xs font-semibold uppercase text-slate-500 text-right">Fee</th></tr></thead>
+                            <tbody className="divide-y divide-slate-200 text-[10px] sm:text-sm">
                                 {projectsBeingPaid.map(p => {
                                     const project = projects.find(proj => proj.id === p.projectId);
                                     return (
                                         <tr key={p.id}>
-                                            <td data-label="Proyek" className="p-3 font-semibold text-slate-800">{project?.projectName || 'N/A'}</td>
-                                            <td data-label="Peran" className="p-3 text-slate-600">{project?.team.find(t => t.memberId === freelancer.id)?.role || freelancer.role}</td>
-                                            <td data-label="Fee" className="p-3 text-right text-slate-800">{formatCurrency(p.fee)}</td>
+                                            <td data-label="Proyek" className="p-1.5 sm:p-3 font-semibold text-slate-800">{project?.projectName || 'N/A'}</td>
+                                            <td data-label="Peran" className="p-1.5 sm:p-3 text-slate-600">{project?.team.find(t => t.memberId === freelancer.id)?.role || freelancer.role}</td>
+                                            <td data-label="Fee" className="p-1.5 sm:p-3 text-right text-slate-800">{formatCurrency(p.fee)}</td>
                                         </tr>
                                     );
                                 })}
@@ -934,10 +934,10 @@ export const Freelancers: React.FC<FreelancersProps> = ({
                         </table>
                     </section>
     
-                    <section className="mt-12 avoid-break totals-section">
+                    <section className="mt-4 sm:mt-8 avoid-break totals-section">
                         <div className="flex flex-col sm:flex-row justify-end">
-                            <div className="w-full sm:w-2/5 space-y-2 text-sm">
-                                <div className="flex justify-between font-bold text-xl text-slate-900 bg-slate-100 p-4 rounded-lg">
+                            <div className="w-full sm:w-2/5 space-y-2 text-[10px] sm:text-sm">
+                                <div className="flex justify-between font-bold text-sm sm:text-lg text-slate-900 bg-slate-100 p-2 sm:p-4 rounded-lg">
                                     <span>TOTAL DIBAYAR</span>
                                     <span>{formatCurrency(record.totalAmount)}</span>
                                 </div>
@@ -945,13 +945,13 @@ export const Freelancers: React.FC<FreelancersProps> = ({
                         </div>
                     </section>
                     
-                    <footer className="mt-12 pt-8 border-t-2 border-slate-200 avoid-break signature-section">
+                    <footer className="mt-4 sm:mt-8 pt-4 sm:pt-6 border-t border-slate-200 avoid-break signature-section">
                         <div className="flex justify-between items-end">
                             <div></div>
                             <div className="text-center w-full sm:w-2/5">
-                                <p className="text-sm text-slate-600">Diverifikasi oleh,</p>
-                                <div className="h-20 mt-2 flex items-center justify-center">{record.vendorSignature ? (<img src={record.vendorSignature} alt="Tanda Tangan" className="h-20 object-contain" />) : (<div className="h-20 flex items-center justify-center text-xs text-slate-400 italic border-b border-dashed w-full">Belum Ditandatangani</div>)}</div>
-                                <p className="text-sm font-semibold text-slate-800 mt-1 border-t-2 border-slate-300 pt-1">({userProfile.authorizedSigner || userProfile.companyName})</p>
+                                <p className="text-[10px] sm:text-sm text-slate-600">Diverifikasi oleh,</p>
+                                <div className="h-16 sm:h-20 mt-2 flex items-center justify-center">{record.vendorSignature ? (<img src={record.vendorSignature} alt="Tanda Tangan" className="h-16 sm:h-20 object-contain" />) : (<div className="h-16 sm:h-20 flex items-center justify-center text-[9px] sm:text-xs text-slate-400 italic border-b border-dashed w-full">Belum Ditandatangani</div>)}</div>
+                                <p className="text-[10px] sm:text-sm font-semibold text-slate-800 mt-1 border-t border-slate-300 pt-1">({userProfile.authorizedSigner || userProfile.companyName})</p>
                             </div>
                         </div>
                     </footer>
@@ -989,7 +989,7 @@ export const Freelancers: React.FC<FreelancersProps> = ({
 
     return (
         <div className="space-y-6">
-            <PageHeader title="Manajemen Freelancer" subtitle="Kelola semua data freelancer, proyek, dan pembayaran.">
+            <PageHeader title="Manajemen Freelancer" subtitle="Kelola semua data freelancer, proyek, dan pembayaran." icon={<UsersIcon className="w-6 h-6" />}>
                 <div className="flex items-center gap-2">
                     <button onClick={() => setIsInfoModalOpen(true)} className="button-secondary">Pelajari Halaman Ini</button>
                     <button onClick={handleDownloadFreelancers} className="button-secondary inline-flex items-center gap-2">
@@ -1002,23 +1002,55 @@ export const Freelancers: React.FC<FreelancersProps> = ({
                 </div>
             </PageHeader>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-6">
                  <div onClick={() => setActiveStatModal('total')} className="widget-animate cursor-pointer transition-transform duration-200 hover:scale-105" style={{ animationDelay: '100ms' }}>
-                    <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total Freelancer" value={teamStats.totalMembers.toString()} iconBgColor="bg-blue-500/20" iconColor="text-blue-400" />
+                    <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total Freelancer" value={teamStats.totalMembers.toString()} subtitle="Anggota tim terdaftar" colorVariant="blue" />
                  </div>
                  <div onClick={() => setActiveStatModal('unpaid')} className="widget-animate cursor-pointer transition-transform duration-200 hover:scale-105" style={{ animationDelay: '200ms' }}>
-                    <StatCard icon={<AlertCircleIcon className="w-6 h-6"/>} title="Total Fee Belum Dibayar" value={teamStats.totalUnpaid} iconBgColor="bg-red-500/20" iconColor="text-red-400" />
+                    <StatCard icon={<AlertCircleIcon className="w-6 h-6"/>} title="Total Fee Belum Dibayar" value={teamStats.totalUnpaid} subtitle="Pembayaran yang tertunda" colorVariant="pink" />
                  </div>
                  <div onClick={() => setActiveStatModal('topRated')} className="widget-animate cursor-pointer transition-transform duration-200 hover:scale-105" style={{ animationDelay: '300ms' }}>
-                    <StatCard icon={<UserCheckIcon className="w-6 h-6"/>} title="Rating Tertinggi" value={teamStats.topRatedName} subtitle={`Rating: ${teamStats.topRatedRating}`} iconBgColor="bg-green-500/20" iconColor="text-green-400" />
+                    <StatCard icon={<UserCheckIcon className="w-6 h-6"/>} title="Rating Tertinggi" value={teamStats.topRatedName} subtitle={`Rating: ${teamStats.topRatedRating}`} colorVariant="green" />
                  </div>
                  <div onClick={() => setActiveStatModal('rewards')} className="widget-animate cursor-pointer transition-transform duration-200 hover:scale-105" style={{ animationDelay: '400ms' }}>
-                    <StatCard icon={<PiggyBankIcon className="w-6 h-6"/>} title="Total Saldo Hadiah" value={formatCurrency(pockets.find(p => p.type === PocketType.REWARD_POOL)?.amount || 0)} iconBgColor="bg-yellow-500/20" iconColor="text-yellow-400" />
+                    <StatCard icon={<PiggyBankIcon className="w-6 h-6"/>} title="Total Saldo Hadiah" value={formatCurrency(pockets.find(p => p.type === PocketType.REWARD_POOL)?.amount || 0)} subtitle="Hadiah yang belum ditarik" colorVariant="orange" />
                  </div>
             </div>
 
              <div className="bg-brand-surface p-4 rounded-xl shadow-lg border border-brand-border">
-                <div className="overflow-x-auto">
+                {/* Mobile cards */}
+                <div className="md:hidden space-y-3">
+                    {uniqueTeamMembers.map(member => {
+                        const unpaidFee = teamProjectPayments.filter(p => p.teamMemberId === member.id && p.status === 'Unpaid').reduce((sum, p) => sum + p.fee, 0);
+                        const reward = rewardTotalsByMember[member.id] ?? member.rewardBalance ?? 0;
+                        return (
+                            <div key={member.id} className="rounded-2xl bg-white/5 border border-brand-border p-4 shadow-sm">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="font-semibold text-brand-text-light leading-tight">{member.name}</p>
+                                        <p className="text-[11px] text-brand-text-secondary">{member.role}</p>
+                                    </div>
+                                    <div className="text-right text-xs">
+                                        <div className="inline-flex items-center gap-1 bg-brand-bg px-2 py-1 rounded-full"><StarIcon className="w-3.5 h-3.5 text-yellow-400 fill-current"/>{member.rating.toFixed(1)}</div>
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+                                    <span className="text-brand-text-secondary">Fee Belum Dibayar</span>
+                                    <span className="text-right font-semibold text-red-400">{formatCurrency(unpaidFee)}</span>
+                                    <span className="text-brand-text-secondary">Saldo Hadiah</span>
+                                    <span className="text-right font-semibold text-yellow-400">{formatCurrency(reward)}</span>
+                                </div>
+                                <div className="mt-3 flex justify-end gap-2">
+                                    <button onClick={() => handleViewDetails(member)} className="button-secondary !text-xs !px-3 !py-2">Detail</button>
+                                    <button onClick={() => handleOpenForm('edit', member)} className="button-secondary !text-xs !px-3 !py-2">Edit</button>
+                                    <button onClick={() => handleDelete(member.id)} className="button-secondary !text-xs !px-3 !py-2">Hapus</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm">
                         <thead className="text-xs text-brand-text-secondary uppercase"><tr><th className="px-4 py-3">Nama</th><th className="px-4 py-3">Role</th><th className="px-4 py-3">Fee Belum Dibayar</th><th className="px-4 py-3">Saldo Hadiah</th><th className="px-4 py-3 text-center">Rating</th><th className="px-4 py-3 text-center">Aksi</th></tr></thead>
                         <tbody className="divide-y divide-brand-border">
@@ -1061,80 +1093,228 @@ export const Freelancers: React.FC<FreelancersProps> = ({
 
             <Modal isOpen={isFormOpen} onClose={() => setIsFormOpen(false)} title={formMode === 'add' ? 'Tambah Freelancer' : 'Edit Freelancer'}>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="input-group"><input type="text" id="name" name="name" value={formData.name} onChange={handleFormChange} className="input-field" placeholder=" " required /><label className="input-label">Nama</label></div>
-                    <div className="input-group"><input type="text" id="role" name="role" value={formData.role} onChange={handleFormChange} className="input-field" placeholder=" " required /><label className="input-label">Role (e.g., Fotografer)</label></div>
-                    <div className="input-group"><input type="email" id="email" name="email" value={formData.email} onChange={handleFormChange} className="input-field" placeholder=" " required /><label className="input-label">Email</label></div>
-                    <div className="input-group"><input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleFormChange} className="input-field" placeholder=" " required /><label className="input-label">Telepon</label></div>
-                    <div className="input-group"><input type="number" id="standardFee" name="standardFee" value={formData.standardFee} onChange={handleFormChange} className="input-field" placeholder=" " required /><label className="input-label">Fee Standar (IDR)</label></div>
-                    <div className="input-group"><input type="text" id="noRek" name="noRek" value={formData.noRek} onChange={handleFormChange} className="input-field" placeholder=" " /><label className="input-label">No. Rekening</label></div>
-                    <div className="flex justify-end gap-3 pt-6 border-t border-brand-border"><button type="button" onClick={() => setIsFormOpen(false)} className="button-secondary">Batal</button><button type="submit" className="button-primary">{formMode === 'add' ? 'Simpan' : 'Update'}</button></div>
+                    <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mb-4">
+                        <h4 className="text-sm font-semibold text-blue-400 mb-2 flex items-center gap-2">
+                            <UsersIcon className="w-4 h-4" />
+                            Informasi Freelancer
+                        </h4>
+                        <p className="text-xs text-brand-text-secondary">
+                            Tambahkan data lengkap freelancer yang akan bekerja sama dengan Anda. Data ini akan digunakan untuk manajemen proyek dan pembayaran.
+                        </p>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Data Pribadi</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input type="text" id="name" name="name" value={formData.name} onChange={handleFormChange} className="input-field" placeholder=" " required />
+                                <label htmlFor="name" className="input-label">Nama Lengkap</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Nama lengkap freelancer</p>
+                            </div>
+                            <div className="input-group">
+                                <input type="text" id="role" name="role" value={formData.role} onChange={handleFormChange} className="input-field" placeholder=" " required />
+                                <label htmlFor="role" className="input-label">Role/Posisi</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Contoh: Fotografer, Videografer, Editor</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Kontak</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input type="email" id="email" name="email" value={formData.email} onChange={handleFormChange} className="input-field" placeholder=" " required />
+                                <label htmlFor="email" className="input-label">Email</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Email untuk komunikasi dan akses portal</p>
+                            </div>
+                            <div className="input-group">
+                                <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleFormChange} className="input-field" placeholder=" " required />
+                                <label htmlFor="phone" className="input-label">Nomor Telepon</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Nomor WhatsApp/telepon aktif</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <h5 className="text-sm font-semibold text-brand-text-light mb-3">Informasi Pembayaran</h5>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="input-group">
+                                <input type="number" id="standardFee" name="standardFee" value={formData.standardFee} onChange={handleFormChange} className="input-field" placeholder=" " required />
+                                <label htmlFor="standardFee" className="input-label">Fee Standar (IDR)</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Fee default per proyek dalam Rupiah</p>
+                            </div>
+                            <div className="input-group">
+                                <input type="text" id="noRek" name="noRek" value={formData.noRek} onChange={handleFormChange} className="input-field" placeholder=" " />
+                                <label htmlFor="noRek" className="input-label">Nomor Rekening</label>
+                                <p className="text-xs text-brand-text-secondary mt-1">Untuk transfer pembayaran (opsional)</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col sm:flex-row justify-end gap-3 pt-6 border-t border-brand-border">
+                        <button type="button" onClick={() => setIsFormOpen(false)} className="button-secondary w-full sm:w-auto">Batal</button>
+                        <button type="submit" className="button-primary w-full sm:w-auto">{formMode === 'add' ? 'Simpan' : 'Update'}</button>
+                    </div>
                 </form>
             </Modal>
             
             {selectedMember && <Modal isOpen={isDetailOpen} onClose={() => setIsDetailOpen(false)} title={`Detail Freelancer: ${selectedMember.name}`} size="4xl">
-                <div>
-                     <div className="border-b border-brand-border"><nav className="-mb-px flex space-x-6 overflow-x-auto">
-                        <button onClick={() => setDetailTab('projects')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${detailTab === 'projects' || detailTab === 'create-payment' ?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><FileTextIcon className="w-5 h-5"/>Proyek Belum Dibayar</button>
-                        <button onClick={() => setDetailTab('payments')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${detailTab === 'payments'?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><HistoryIcon className="w-5 h-5"/>Riwayat Pembayaran</button>
-                        <button onClick={() => setDetailTab('performance')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${detailTab === 'performance'?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><StarIcon className="w-5 h-5"/>Kinerja</button>
-                        <button onClick={() => setDetailTab('rewards')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm ${detailTab === 'rewards'?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><PiggyBankIcon className="w-5 h-5"/>Tabungan Hadiah</button>
-                        <button onClick={() => handleOpenQrModal(selectedMember)} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm border-transparent text-brand-text-secondary hover:text-brand-text-light`}><Share2Icon className="w-5 h-5"/>Bagikan Portal</button>
-                    </nav></div>
-                    <div className="pt-5 max-h-[65vh] overflow-y-auto pr-2">
+                <div className="flex flex-col h-full">
+                     {/* Desktop Tab Navigation - Top */}
+                     <div className="hidden md:block border-b border-brand-border">
+                        <nav className="-mb-px flex space-x-6 overflow-x-auto">
+                            <button onClick={() => setDetailTab('projects')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'projects' || detailTab === 'create-payment' ?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><FileTextIcon className="w-5 h-5"/>Proyek Belum Dibayar</button>
+                            <button onClick={() => setDetailTab('payments')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'payments'?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><HistoryIcon className="w-5 h-5"/>Riwayat Pembayaran</button>
+                            <button onClick={() => setDetailTab('performance')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'performance'?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><StarIcon className="w-5 h-5"/>Kinerja</button>
+                            <button onClick={() => setDetailTab('rewards')} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors ${detailTab === 'rewards'?'border-brand-accent text-brand-accent':'border-transparent text-brand-text-secondary hover:text-brand-text-light'}`}><PiggyBankIcon className="w-5 h-5"/>Tabungan Hadiah</button>
+                            <button onClick={() => handleOpenQrModal(selectedMember)} className={`shrink-0 inline-flex items-center gap-2 py-3 px-1 border-b-2 font-medium text-sm transition-colors border-transparent text-brand-text-secondary hover:text-brand-text-light`}><Share2Icon className="w-5 h-5"/>Bagikan Portal</button>
+                        </nav>
+                     </div>
+
+                     {/* Mobile Tab Navigation - Top Pills */}
+                     <div className="md:hidden mb-3">
+                        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                            <button 
+                                onClick={() => setDetailTab('projects')} 
+                                className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                                    detailTab === 'projects' || detailTab === 'create-payment'
+                                        ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                        : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                                }`}
+                            >
+                                <FileTextIcon className="w-4 h-4"/>
+                                <span>Proyek</span>
+                            </button>
+                            <button 
+                                onClick={() => setDetailTab('payments')} 
+                                className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                                    detailTab === 'payments'
+                                        ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                        : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                                }`}
+                            >
+                                <HistoryIcon className="w-4 h-4"/>
+                                <span>Pembayaran</span>
+                            </button>
+                            <button 
+                                onClick={() => setDetailTab('performance')} 
+                                className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                                    detailTab === 'performance'
+                                        ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                        : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                                }`}
+                            >
+                                <StarIcon className="w-4 h-4"/>
+                                <span>Kinerja</span>
+                            </button>
+                            <button 
+                                onClick={() => setDetailTab('rewards')} 
+                                className={`flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 ${
+                                    detailTab === 'rewards'
+                                        ? 'bg-brand-accent text-white shadow-lg shadow-brand-accent/30' 
+                                        : 'bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95'
+                                }`}
+                            >
+                                <PiggyBankIcon className="w-4 h-4"/>
+                                <span>Hadiah</span>
+                            </button>
+                            <button 
+                                onClick={() => handleOpenQrModal(selectedMember)} 
+                                className="flex-shrink-0 inline-flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 bg-brand-surface text-brand-text-secondary border border-brand-border active:scale-95"
+                            >
+                                <Share2Icon className="w-4 h-4"/>
+                                <span>Portal</span>
+                            </button>
+                        </div>
+                     </div>
+
+                    <div className="pt-0 md:pt-5 max-h-[65vh] overflow-y-auto pr-2 pb-4">
                         {detailTab === 'projects' && <FreelancerProjects unpaidProjects={selectedMemberUnpaidProjects} projectsToPay={projectsToPay} onToggleProject={(id) => setProjectsToPay(p => p.includes(id) ? p.filter(i=>i!==id) : [...p, id])} onProceedToPayment={handleCreatePayment} projects={projects} />}
-                        {detailTab === 'payments' && <div>
-                            <h4 className="text-base font-semibold text-brand-text-light mb-4">Riwayat Pembayaran</h4>
-                            {uniqueTeamPaymentRecords.filter(r => r.teamMemberId === selectedMember.id).length > 0 ? (
-                                <div className="overflow-x-auto border border-brand-border rounded-lg">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-brand-bg text-xs text-brand-text-secondary uppercase">
-                                            <tr>
-                                                <th className="px-4 py-3 text-left">No. Pembayaran</th>
-                                                <th className="px-4 py-3 text-left">Tanggal</th>
-                                                <th className="px-4 py-3 text-right">Jumlah</th>
-                                                <th className="px-4 py-3 text-center">Aksi</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="divide-y divide-brand-border">
-                                            {uniqueTeamPaymentRecords.filter(r => r.teamMemberId === selectedMember.id).map(record => (
-                                                <React.Fragment key={record.id}>
-                                                    <tr>
-                                                        <td className="px-4 py-3 font-mono text-brand-text-secondary">{record.recordNumber}</td>
-                                                        <td className="px-4 py-3 text-brand-text-primary">{formatDate(record.date)}</td>
-                                                        <td className="px-4 py-3 text-right font-semibold text-brand-success">{formatCurrency(record.totalAmount)}</td>
-                                                        <td className="px-4 py-3 text-center">
-                                                           <div className="flex items-center justify-center gap-1">
-                                                                <button onClick={() => setExpandedRecordId(expandedRecordId === record.id ? null : record.id)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title={expandedRecordId === record.id ? 'Tutup Rincian' : 'Lihat Rincian'}><EyeIcon className="w-5 h-5" /></button>
-                                                                <button onClick={() => setPaymentSlipToView(record)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Lihat Slip Pembayaran"><FileTextIcon className="w-5 h-5" /></button>
-                                                            </div>
+                        {detailTab === 'payments' && <div className="tab-content-mobile">
+                            <h4 className="text-sm md:text-base font-semibold text-brand-text-light mb-4">Riwayat Pembayaran</h4>
+                            {/* Mobile cards */}
+                            <div className="md:hidden space-y-3">
+                                {uniqueTeamPaymentRecords.filter(r => r.teamMemberId === selectedMember.id).map(record => (
+                                    <div key={record.id} className="rounded-2xl bg-white/5 border border-brand-border p-4 shadow-sm">
+                                        <div className="flex items-start justify-between">
+                                            <div>
+                                                <p className="text-sm font-medium text-brand-text-light">No: {record.recordNumber}</p>
+                                                <p className="text-[11px] text-brand-text-secondary mt-0.5">{formatDate(record.date)}</p>
+                                            </div>
+                                            <p className="text-sm font-semibold text-brand-success">{formatCurrency(record.totalAmount)}</p>
+                                        </div>
+                                        {expandedRecordId === record.id && (
+                                            <div className="mt-3 bg-brand-bg rounded-lg p-3">
+                                                <p className="text-sm font-medium mb-2 text-brand-text-light">Proyek yang dibayar:</p>
+                                                <ul className="list-disc list-inside text-sm space-y-1 pl-4">
+                                                    {record.projectPaymentIds.map(paymentId => {
+                                                        const payment = teamProjectPayments.find(p => p.id === paymentId);
+                                                        const project = projects.find(p => p.id === payment?.projectId);
+                                                        return (
+                                                            <li key={paymentId} className="text-brand-text-primary">{project?.projectName || 'Proyek tidak ditemukan'} - <span className="font-semibold">{formatCurrency(payment?.fee || 0)}</span></li>
+                                                        );
+                                                    })}
+                                                </ul>
+                                            </div>
+                                        )}
+                                        <div className="mt-3 flex justify-end gap-2">
+                                            <button onClick={() => setExpandedRecordId(expandedRecordId === record.id ? null : record.id)} className="button-secondary !text-xs !px-3 !py-2">{expandedRecordId === record.id ? 'Tutup' : 'Rincian'}</button>
+                                            <button onClick={() => setPaymentSlipToView(record)} className="button-secondary !text-xs !px-3 !py-2">Slip</button>
+                                        </div>
+                                    </div>
+                                ))}
+                                {uniqueTeamPaymentRecords.filter(r => r.teamMemberId === selectedMember.id).length === 0 && (
+                                    <p className="text-center text-brand-text-secondary py-8">Tidak ada riwayat pembayaran untuk freelancer ini.</p>
+                                )}
+                            </div>
+                            {/* Desktop table */}
+                            <div className="hidden md:block overflow-x-auto border border-brand-border rounded-lg">
+                                <table className="w-full text-sm">
+                                    <thead className="bg-brand-bg text-xs text-brand-text-secondary uppercase">
+                                        <tr>
+                                            <th className="px-4 py-3 text-left">No. Pembayaran</th>
+                                            <th className="px-4 py-3 text-left">Tanggal</th>
+                                            <th className="px-4 py-3 text-right">Jumlah</th>
+                                            <th className="px-4 py-3 text-center">Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-brand-border">
+                                        {uniqueTeamPaymentRecords.filter(r => r.teamMemberId === selectedMember.id).map(record => (
+                                            <React.Fragment key={record.id}>
+                                                <tr>
+                                                    <td className="px-4 py-3 font-mono text-brand-text-secondary">{record.recordNumber}</td>
+                                                    <td className="px-4 py-3 text-brand-text-primary">{formatDate(record.date)}</td>
+                                                    <td className="px-4 py-3 text-right font-semibold text-brand-success">{formatCurrency(record.totalAmount)}</td>
+                                                    <td className="px-4 py-3 text-center">
+                                                       <div className="flex items-center justify-center gap-1">
+                                                            <button onClick={() => setExpandedRecordId(expandedRecordId === record.id ? null : record.id)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title={expandedRecordId === record.id ? 'Tutup Rincian' : 'Lihat Rincian'}><EyeIcon className="w-5 h-5" /></button>
+                                                            <button onClick={() => setPaymentSlipToView(record)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Lihat Slip Pembayaran"><FileTextIcon className="w-5 h-5" /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                                {expandedRecordId === record.id && (
+                                                    <tr className="bg-brand-bg">
+                                                        <td colSpan={4} className="p-4">
+                                                            <p className="text-sm font-medium mb-2 text-brand-text-light">Proyek yang dibayar:</p>
+                                                            <ul className="list-disc list-inside text-sm space-y-1 pl-4">
+                                                                {record.projectPaymentIds.map(paymentId => {
+                                                                    const payment = teamProjectPayments.find(p => p.id === paymentId);
+                                                                    const project = projects.find(p => p.id === payment?.projectId);
+                                                                    return (
+                                                                        <li key={paymentId} className="text-brand-text-primary">
+                                                                            {project?.projectName || 'Proyek tidak ditemukan'} - <span className="font-semibold">{formatCurrency(payment?.fee || 0)}</span>
+                                                                        </li>
+                                                                    );
+                                                                })}
+                                                            </ul>
                                                         </td>
                                                     </tr>
-                                                    {expandedRecordId === record.id && (
-                                                        <tr className="bg-brand-bg">
-                                                            <td colSpan={4} className="p-4">
-                                                                <p className="text-sm font-medium mb-2 text-brand-text-light">Proyek yang dibayar:</p>
-                                                                <ul className="list-disc list-inside text-sm space-y-1 pl-4">
-                                                                    {record.projectPaymentIds.map(paymentId => {
-                                                                        const payment = teamProjectPayments.find(p => p.id === paymentId);
-                                                                        const project = projects.find(p => p.id === payment?.projectId);
-                                                                        return (
-                                                                            <li key={paymentId} className="text-brand-text-primary">
-                                                                                {project?.projectName || 'Proyek tidak ditemukan'} - <span className="font-semibold">{formatCurrency(payment?.fee || 0)}</span>
-                                                                            </li>
-                                                                        );
-                                                                    })}
-                                                                </ul>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </React.Fragment>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            ) : (
-                                <p className="text-center text-brand-text-secondary py-8">Tidak ada riwayat pembayaran untuk freelancer ini.</p>
-                            )}
+                                                )}
+                                            </React.Fragment>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>}
                         {detailTab === 'performance' && <PerformanceTab member={selectedMember} onSetRating={handleSetRating} newNote={newNote} setNewNote={setNewNote} newNoteType={newNoteType} setNewNoteType={setNewNoteType} onAddNote={handleAddNote} onDeleteNote={handleDeleteNote} />}
                         {detailTab === 'rewards' && <RewardSavingsTab member={selectedMember} suggestions={[]} rewardLedger={rewardLedgerEntries.filter(rle => rle.teamMemberId === selectedMember.id)} onWithdraw={handleWithdrawRewards} />}
@@ -1227,3 +1407,5 @@ export const Freelancers: React.FC<FreelancersProps> = ({
         </div>
     );
 };
+
+export default Freelancers;

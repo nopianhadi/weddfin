@@ -4,10 +4,11 @@ import PageHeader from './PageHeader';
 import StatCard from './StatCard';
 import Modal from './Modal';
 import DonutChart from './DonutChart';
-import { UsersIcon, DollarSignIcon, PackageIcon, EyeIcon, MessageSquareIcon, CalendarIcon, CheckCircleIcon, CheckIcon, BanIcon, LayoutGridIcon, ListIcon, MessageCircleIcon, WhatsappIcon } from '../constants';
+import { UsersIcon, DollarSignIcon, PackageIcon, EyeIcon, MessageSquareIcon, CalendarIcon, CheckCircleIcon, CheckIcon, BanIcon, LayoutGridIcon, ListIcon, MessageCircleIcon, WhatsappIcon, PencilIcon, Trash2Icon } from '../constants';
 import { cleanPhoneNumber, CHAT_TEMPLATES } from '../constants';
-import { updateProject } from '../services/projects';
+import { updateProject, deleteProject } from '../services/projects';
 import { upsertProfile } from '../services/profile';
+import { useChatTemplates } from '../hooks/useChatTemplates';
 
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
@@ -49,39 +50,88 @@ const BookingChart: React.FC<{ bookings: { lead: Lead; project: Project }[] }> =
     const maxCount = Math.max(...chartData.map(d => d.count), 1);
     const maxValue = Math.max(...chartData.map(d => d.value), 1);
 
+    const hasData = chartData.some(d => d.count > 0 || d.value > 0);
+
+    if (!hasData) {
+        return (
+            <div className="bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border h-full">
+                <h3 className="font-bold text-lg text-gradient mb-6">Grafik Booking Tahun Ini</h3>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                    <div className="w-20 h-20 rounded-2xl bg-brand-bg border-2 border-dashed border-brand-border flex items-center justify-center mb-3">
+                        <svg className="w-10 h-10 text-brand-text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
+                    <p className="text-sm font-medium text-brand-text-light mb-1">Belum Ada Booking Tahun Ini</p>
+                    <p className="text-xs text-brand-text-secondary">Data booking akan muncul di sini</p>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="bg-brand-surface p-6 rounded-2xl shadow-lg border border-brand-border h-full">
-            <h3 className="font-bold text-lg text-gradient mb-6">Grafik Booking Tahun Ini</h3>
-            <div className="h-48 flex justify-between items-end gap-2 relative">
+            <h3 className="font-bold text-lg text-gradient mb-2">Grafik Booking Tahun Ini</h3>
+            <p className="text-xs text-brand-text-secondary mb-6">Jumlah dan nilai booking per bulan</p>
+            <div className="h-48 flex justify-between items-end gap-1.5 relative bg-brand-bg/30 rounded-lg p-3">
                 {chartData.map((item, index) => {
-                    const countHeight = Math.max((item.count / maxCount) * 100, 2);
-                    const valueHeight = Math.max((item.value / maxValue) * 100, 2);
+                    const countHeight = Math.max((item.count / maxCount) * 100, 3);
+                    const valueHeight = Math.max((item.value / maxValue) * 100, 3);
+                    const isHovered = tooltip?.data.name === item.name;
                     return (
                         <div
                             key={item.name}
-                            className="flex-1 flex flex-col items-center justify-end h-full group relative"
+                            className="flex-1 flex flex-col items-center justify-end h-full group relative cursor-pointer"
                             onMouseEnter={() => setTooltip({ x: (index / chartData.length) * 100, y: 0, data: item })}
                             onMouseLeave={() => setTooltip(null)}
                         >
-                            <div className="flex-1 flex items-end w-full justify-center gap-1">
-                                <div className="bg-blue-500/30 w-1/2 rounded-md transition-colors hover:bg-blue-500" style={{ height: `${countHeight}%` }} title={`Jumlah: ${item.count}`}></div>
-                                <div className="bg-green-500/30 w-1/2 rounded-md transition-colors hover:bg-green-500" style={{ height: `${valueHeight}%` }} title={`Nilai: ${formatCurrency(item.value)}`}></div>
+                            <div className="flex-1 flex items-end w-full justify-center gap-0.5">
+                                <div 
+                                    className={`w-1/2 rounded-t-md transition-all duration-300 ${isHovered ? 'bg-blue-500 shadow-lg' : 'bg-blue-500/40 hover:bg-blue-500/60'}`}
+                                    style={{ height: `${countHeight}%` }}
+                                ></div>
+                                <div 
+                                    className={`w-1/2 rounded-t-md transition-all duration-300 ${isHovered ? 'bg-green-500 shadow-lg' : 'bg-green-500/40 hover:bg-green-500/60'}`}
+                                    style={{ height: `${valueHeight}%` }}
+                                ></div>
                             </div>
-                            <span className="text-xs text-brand-text-secondary mt-2">{item.name}</span>
+                            <span className={`text-[10px] mt-2 transition-colors ${isHovered ? 'text-brand-accent font-semibold' : 'text-brand-text-secondary'}`}>
+                                {item.name}
+                            </span>
                         </div>
                     );
                 })}
                 {tooltip && (
-                    <div className="absolute -top-12 bg-brand-bg p-2 rounded-lg shadow-xl text-xs" style={{ left: `${tooltip.x}%` }}>
-                        <p className="font-bold">{tooltip.data.name}</p>
-                        <p>Jumlah: {tooltip.data.count}</p>
-                        <p>Nilai: {formatCurrency(tooltip.data.value)}</p>
+                    <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-br from-brand-surface to-brand-bg border-2 border-brand-accent/30 p-3 rounded-xl shadow-2xl text-xs z-10 min-w-[160px]">
+                        <p className="font-bold text-center border-b border-brand-accent/30 pb-1.5 mb-2 text-brand-accent">{tooltip.data.name}</p>
+                        <div className="space-y-1.5">
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 bg-blue-500 rounded-full"></span>
+                                    <span className="text-brand-text-secondary">Jumlah</span>
+                                </div>
+                                <span className="font-semibold text-blue-400">{tooltip.data.count}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="w-2.5 h-2.5 bg-green-500 rounded-full"></span>
+                                    <span className="text-brand-text-secondary">Nilai</span>
+                                </div>
+                                <span className="font-semibold text-green-400">{formatCurrency(tooltip.data.value)}</span>
+                            </div>
+                        </div>
                     </div>
                 )}
             </div>
-            <div className="flex justify-center items-center gap-4 text-xs mt-4">
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-500/30 rounded-sm"></div> Jumlah Booking</div>
-                <div className="flex items-center gap-1"><div className="w-3 h-3 bg-green-500/30 rounded-sm"></div> Nilai Booking</div>
+            <div className="flex justify-center items-center gap-6 text-xs mt-4">
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-blue-500/40 rounded-md"></div>
+                    <span className="text-brand-text-secondary">Jumlah Booking</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <div className="w-3 h-3 bg-green-500/40 rounded-md"></div>
+                    <span className="text-brand-text-secondary">Nilai Booking</span>
+                </div>
             </div>
         </div>
     );
@@ -98,26 +148,25 @@ interface WhatsappTemplateModalProps {
 }
 
 const WhatsappTemplateModal: React.FC<WhatsappTemplateModalProps> = ({ project, client, onClose, showNotification, userProfile, setProfile }) => {
-    const templates = (userProfile.chatTemplates && userProfile.chatTemplates.length > 0)
-        ? userProfile.chatTemplates
-        : CHAT_TEMPLATES;
+    const { templates, processTemplate: processTemplateFunc, updateTemplate, isOnline } = useChatTemplates(userProfile);
     const [selectedTemplate, setSelectedTemplate] = useState(templates[0]?.id || '');
     const [customMessage, setCustomMessage] = useState('');
 
     useEffect(() => {
         const template = templates.find(t => t.id === selectedTemplate)?.template || '';
-        const processedMessage = template
-            .replace('{clientName}', client.name)
-            .replace('{projectName}', project.projectName);
+        const processedMessage = processTemplateFunc(template, {
+            clientName: client.name,
+            projectName: project.projectName,
+        });
         setCustomMessage(processedMessage);
-    }, [selectedTemplate, client, project, templates]);
+    }, [selectedTemplate, client, project, templates, processTemplateFunc]);
 
     // Ensure selectedTemplate is always valid when templates list changes
     useEffect(() => {
         if (!templates.find(t => t.id === selectedTemplate)) {
             setSelectedTemplate(templates[0]?.id || '');
         }
-    }, [templates]);
+    }, [templates, selectedTemplate]);
 
     const handleSelectTemplate = (templateId: string) => {
         setSelectedTemplate(templateId);
@@ -140,23 +189,12 @@ const WhatsappTemplateModal: React.FC<WhatsappTemplateModalProps> = ({ project, 
             .replace(new RegExp(client.name, 'g'), '{clientName}')
             .replace(new RegExp(project.projectName, 'g'), '{projectName}');
 
-        // Update local state optimistically
-        const baseTemplates = (userProfile.chatTemplates && userProfile.chatTemplates.length > 0)
-            ? userProfile.chatTemplates
-            : CHAT_TEMPLATES;
-        const newTemplates = baseTemplates.map(t =>
-            t.id === selectedTemplate ? { ...t, template: rawTemplate } : t
-        );
-        setProfile(prev => ({ ...prev, chatTemplates: newTemplates }));
-
-        // Persist to Supabase profile
         try {
-            const saved = await upsertProfile({ id: userProfile.id, chatTemplates: newTemplates });
-            setProfile(saved);
-            showNotification('Template berhasil disimpan!');
+            await updateTemplate(selectedTemplate, { template: rawTemplate });
+            showNotification(isOnline ? 'Template berhasil disimpan!' : 'Template disimpan offline, akan disinkronkan saat online');
         } catch (err) {
-            console.error('[Chat Template] Gagal menyimpan ke Supabase:', err);
-            showNotification('Gagal menyimpan template ke server. Perubahan hanya tersimpan sementara.');
+            console.error('[Chat Template] Gagal menyimpan template:', err);
+            showNotification('Gagal menyimpan template.');
         }
     };
 
@@ -287,6 +325,22 @@ const Booking: React.FC<BookingProps> = ({ leads, clients, projects, setProjects
         }
     }, [activeStatModal, allBookings, newBookings, mostPopularPackage]);
 
+    const handleDeleteBooking = async (projectId: string, clientName: string) => {
+        if (!window.confirm(`Apakah Anda yakin ingin menghapus booking untuk ${clientName}? Tindakan ini tidak dapat dibatalkan.`)) return;
+        try {
+            await deleteProject(projectId);
+            setProjects(prev => prev.filter(p => p.id !== projectId));
+            showNotification('Booking berhasil dihapus.');
+        } catch (err) {
+            console.error('[Booking] Failed to delete booking:', err);
+            showNotification('Gagal menghapus booking. Silakan coba lagi.');
+        }
+    };
+
+    const handleEditBooking = (clientId: string) => {
+        handleNavigation(ViewType.CLIENTS, { type: 'VIEW_CLIENT_DETAILS', id: clientId });
+    };
+
     const handleStatusChange = async (projectId: string, newStatus: BookingStatus) => {
         const prevStatus = projects.find(p => p.id === projectId)?.bookingStatus;
         // Optimistic update
@@ -310,18 +364,18 @@ const Booking: React.FC<BookingProps> = ({ leads, clients, projects, setProjects
                 </div>
             </PageHeader>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 gap-6">
                 <div onClick={() => setActiveStatModal('total')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total Booking" value={allBookings.length.toString()} />
+                    <StatCard icon={<UsersIcon className="w-6 h-6"/>} title="Total Booking" value={allBookings.length.toString()} subtitle="Semua booking yang masuk" colorVariant="blue" />
                 </div>
                 <div onClick={() => setActiveStatModal('value')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<DollarSignIcon className="w-6 h-6"/>} title="Total Nilai Booking" value={formatCurrency(allBookings.reduce((sum, b) => sum + b.project.totalCost, 0))} />
+                    <StatCard icon={<DollarSignIcon className="w-6 h-6"/>} title="Total Nilai Booking" value={formatCurrency(allBookings.reduce((sum, b) => sum + b.project.totalCost, 0))} subtitle="Nilai keseluruhan booking" colorVariant="orange" />
                 </div>
                 <div onClick={() => setActiveStatModal('popular')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                    <StatCard icon={<PackageIcon className="w-6 h-6"/>} title="Paket Terpopuler" value={mostPopularPackage} />
+                    <StatCard icon={<PackageIcon className="w-6 h-6"/>} title="Paket Terpopuler" value={mostPopularPackage} subtitle="Paket paling banyak dipilih" colorVariant="purple" />
                 </div>
                 <div onClick={() => setActiveStatModal('new')} className="cursor-pointer transition-transform duration-200 hover:scale-105">
-                     <StatCard icon={<MessageSquareIcon className="w-6 h-6"/>} title="Booking Baru" value={newBookings.length.toString()} />
+                     <StatCard icon={<MessageSquareIcon className="w-6 h-6"/>} title="Booking Baru" value={newBookings.length.toString()} subtitle="Menunggu konfirmasi" colorVariant="pink" />
                 </div>
             </div>
 
@@ -344,7 +398,45 @@ const Booking: React.FC<BookingProps> = ({ leads, clients, projects, setProjects
                     <input type="date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} className="input-field !rounded-lg !border !bg-brand-bg p-2.5 w-full" placeholder="Dari Tanggal"/>
                     <input type="date" value={dateTo} onChange={e => setDateTo(e.target.value)} className="input-field !rounded-lg !border !bg-brand-bg p-2.5 w-full" placeholder="Sampai Tanggal"/>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Mobile cards */}
+                <div className="md:hidden p-4 space-y-3">
+                    {filteredNewBookings.map(booking => (
+                        <div key={booking.project.id} className="rounded-2xl bg-white/5 border border-brand-border p-4 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="font-semibold text-brand-text-light leading-tight">{booking.project.clientName}</p>
+                                    <p className="text-xs text-brand-text-secondary mt-0.5">{booking.project.projectName}</p>
+                                    <p className="text-[11px] text-brand-text-secondary mt-1">{formatDate(booking.lead.date)} • {booking.project.projectType}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm font-semibold">{booking.project.packageName}</p>
+                                    <p className="text-xs text-brand-text-secondary">{booking.project.location}</p>
+                                </div>
+                            </div>
+                            <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+                                <span className="text-brand-text-secondary">Total Biaya</span>
+                                <span className="text-right font-semibold">{formatCurrency(booking.project.totalCost)}</span>
+                                <span className="text-brand-text-secondary">DP Dibayar</span>
+                                <span className="text-right font-semibold text-green-400">{formatCurrency(booking.project.amountPaid)}</span>
+                            </div>
+                            <div className="mt-3 flex items-center justify-end gap-2">
+                                {booking.project.dpProofUrl ? (
+                                    <button onClick={() => setViewingProofUrl(booking.project.dpProofUrl!)} className="button-secondary !text-xs !px-3 !py-2">Lihat Bukti</button>
+                                ) : (
+                                    <span className="text-xs text-brand-text-secondary">-</span>
+                                )}
+                                <button onClick={() => handleEditBooking(booking.project.clientId)} className="button-secondary !text-xs !px-3 !py-2 inline-flex items-center gap-1"><PencilIcon className="w-3 h-3"/> Edit</button>
+                                <button onClick={() => handleDeleteBooking(booking.project.id, booking.project.clientName)} className="button-secondary !text-xs !px-3 !py-2 !text-brand-danger !border-brand-danger hover:!bg-brand-danger/10 inline-flex items-center gap-1"><Trash2Icon className="w-3 h-3"/> Hapus</button>
+                                <button onClick={() => handleStatusChange(booking.project.id, BookingStatus.TERKONFIRMASI)} className="button-primary !text-xs !px-3 !py-2">Konfirmasi</button>
+                            </div>
+                        </div>
+                    ))}
+                    {filteredNewBookings.length === 0 && (
+                        <p className="text-center py-6 text-sm text-brand-text-secondary">Tidak ada booking baru yang cocok dengan filter.</p>
+                    )}
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="text-xs text-brand-text-secondary uppercase">
                             <tr>
@@ -384,12 +476,16 @@ const Booking: React.FC<BookingProps> = ({ leads, clients, projects, setProjects
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                         <button
-                                            onClick={() => handleStatusChange(booking.project.id, BookingStatus.TERKONFIRMASI)}
-                                            className="button-primary !text-xs !px-3 !py-1.5"
-                                        >
-                                            Konfirmasi
-                                        </button>
+                                        <div className="flex items-center justify-center gap-1">
+                                            <button onClick={() => handleEditBooking(booking.project.clientId)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Edit Booking"><PencilIcon className="w-4 h-4"/></button>
+                                            <button onClick={() => handleDeleteBooking(booking.project.id, booking.project.clientName)} className="p-2 text-brand-danger hover:bg-brand-danger/10 rounded-full" title="Hapus Booking"><Trash2Icon className="w-4 h-4"/></button>
+                                            <button
+                                                onClick={() => handleStatusChange(booking.project.id, BookingStatus.TERKONFIRMASI)}
+                                                className="button-primary !text-xs !px-3 !py-1.5"
+                                            >
+                                                Konfirmasi
+                                            </button>
+                                        </div>
                                     </td>
                                 </tr>
                             ))}
@@ -408,7 +504,46 @@ const Booking: React.FC<BookingProps> = ({ leads, clients, projects, setProjects
                 <div className="p-4 border-b border-brand-border">
                     <h3 className="font-semibold text-brand-text-light">Riwayat Booking Dikonfirmasi ({confirmedBookings.length})</h3>
                 </div>
-                <div className="overflow-x-auto">
+                {/* Mobile cards */}
+                <div className="md:hidden p-4 space-y-3">
+                    {confirmedBookings.map(booking => {
+                        const client = clients.find(c => c.id === booking.project.clientId);
+                        return (
+                            <div key={booking.project.id} className="rounded-2xl bg-white/5 border border-brand-border p-4 shadow-sm">
+                                <div className="flex items-start justify-between">
+                                    <div>
+                                        <p className="font-semibold text-brand-text-light leading-tight">{booking.project.clientName}</p>
+                                        <p className="text-xs text-brand-text-secondary mt-0.5">{booking.project.projectName}</p>
+                                        <p className="text-[11px] text-brand-text-secondary mt-1">{formatDate(booking.lead.date)} • {booking.project.projectType}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold">{booking.project.packageName}</p>
+                                        <p className="text-xs text-brand-text-secondary">{booking.project.location}</p>
+                                    </div>
+                                </div>
+                                <div className="mt-3 grid grid-cols-2 gap-y-2 text-sm">
+                                    <span className="text-brand-text-secondary">Total Biaya</span>
+                                    <span className="text-right font-semibold">{formatCurrency(booking.project.totalCost)}</span>
+                                    <span className="text-brand-text-secondary">DP Dibayar</span>
+                                    <span className="text-right font-semibold text-green-400">{formatCurrency(booking.project.amountPaid)}</span>
+                                </div>
+                                <div className="mt-3 flex items-center justify-end gap-2">
+                                    {client && (
+                                        <button onClick={() => setWhatsappTemplateModal({ project: booking.project, client })} className="button-secondary !text-xs !px-3 !py-2">Chat & WA</button>
+                                    )}
+                                    <button onClick={() => handleEditBooking(booking.project.clientId)} className="button-secondary !text-xs !px-3 !py-2 inline-flex items-center gap-1"><PencilIcon className="w-3 h-3"/> Edit</button>
+                                    <button onClick={() => handleDeleteBooking(booking.project.id, booking.project.clientName)} className="button-secondary !text-xs !px-3 !py-2 !text-brand-danger !border-brand-danger hover:!bg-brand-danger/10 inline-flex items-center gap-1"><Trash2Icon className="w-3 h-3"/> Hapus</button>
+                                    <button onClick={() => handleNavigation(ViewType.CLIENTS, { type: 'VIEW_CLIENT_DETAILS', id: booking.project.clientId })} className="button-secondary !text-xs !px-3 !py-2">Lihat Detail</button>
+                                </div>
+                            </div>
+                        );
+                    })}
+                    {confirmedBookings.length === 0 && (
+                        <p className="text-center py-6 text-sm text-brand-text-secondary">Belum ada booking yang dikonfirmasi.</p>
+                    )}
+                </div>
+                {/* Desktop table */}
+                <div className="hidden md:block overflow-x-auto">
                      <table className="w-full text-sm text-left">
                         <thead className="text-xs text-brand-text-secondary uppercase">
                             <tr>
@@ -450,7 +585,9 @@ const Booking: React.FC<BookingProps> = ({ leads, clients, projects, setProjects
                                         )}
                                     </td>
                                     <td className="px-4 py-3 text-center">
-                                         <div className="flex items-center justify-center gap-2">
+                                         <div className="flex items-center justify-center gap-1">
+                                            <button onClick={() => handleEditBooking(booking.project.clientId)} className="p-2 text-brand-text-secondary hover:bg-brand-input rounded-full" title="Edit Booking"><PencilIcon className="w-4 h-4"/></button>
+                                            <button onClick={() => handleDeleteBooking(booking.project.id, booking.project.clientName)} className="p-2 text-brand-danger hover:bg-brand-danger/10 rounded-full" title="Hapus Booking"><Trash2Icon className="w-4 h-4"/></button>
                                             {client && (
                                                 <button
                                                     onClick={() => setWhatsappTemplateModal({ project: booking.project, client })}

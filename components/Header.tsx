@@ -100,13 +100,14 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
             <header 
                 id="app-header" 
                 className="
-                    bg-brand-surface 
+                    bg-brand-surface/95
+                    backdrop-blur-md
                     flex items-center justify-between 
                     h-16 sm:h-20 
                     px-3 sm:px-4 md:px-6 lg:px-8 
                     border-b border-brand-border/50
-                    sticky top-0 z-40
-                    shadow-soft
+                    sticky top-0 z-50
+                    shadow-lg
                 "
                 style={{
                     paddingTop: 'calc(0.75rem + var(--safe-area-inset-top, 0px))',
@@ -128,7 +129,7 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                             hover:bg-brand-input 
                             active:bg-brand-input/80
                             xl:hidden
-                            min-w-[44px] min-h-[44px]
+                            min-w-[40px] min-h-[40px] sm:min-w-[44px] sm:min-h-[44px]
                             flex items-center justify-center
                             transition-all duration-200
                             focus:outline-none
@@ -136,7 +137,7 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                         "
                         aria-label="Toggle sidebar"
                     >
-                        <MenuIcon className="h-5 w-5 sm:h-6 sm:h-6" />
+                        <MenuIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     
                     {/* Page Title */}
@@ -153,19 +154,19 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                 </div>
 
                 {/* Right Section - Action Buttons */}
-                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
                     {/* Enhanced Search Button */}
                     <button 
                         onClick={() => setIsSearchOpen(true)}
                         className="
-                            p-2 sm:p-2.5 
+                            p-2.5 sm:p-3
                             text-brand-text-secondary 
                             hover:text-brand-text-light 
                             active:text-brand-text-light
                             rounded-xl 
                             hover:bg-brand-input 
                             active:bg-brand-input/80
-                            min-w-[44px] min-h-[44px]
+                            min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px]
                             flex items-center justify-center
                             transition-all duration-200
                             focus:outline-none
@@ -173,7 +174,7 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                         "
                         aria-label="Buka pencarian global"
                     >
-                        <SearchIcon className="w-5 h-5" />
+                        <SearchIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                     </button>
                     
                     {/* Theme toggle removed: app is locked to light mode */}
@@ -184,14 +185,14 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                             onClick={() => setIsNotifOpen(prev => !prev)}
                             className="
                                 relative 
-                                p-2 sm:p-2.5 
+                                p-2.5 sm:p-3
                                 text-brand-text-secondary 
                                 hover:text-brand-text-light 
                                 active:text-brand-text-light
                                 rounded-xl 
                                 hover:bg-brand-input 
                                 active:bg-brand-input/80
-                                min-w-[44px] min-h-[44px]
+                                min-w-[44px] min-h-[44px] sm:min-w-[48px] sm:min-h-[48px]
                                 flex items-center justify-center
                                 transition-all duration-200
                                 focus:outline-none
@@ -199,9 +200,9 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                             "
                             aria-label={`Notifikasi${unreadCount > 0 ? ` (${unreadCount} baru)` : ''}`}
                         >
-                            <BellIcon className="w-5 h-5" />
+                            <BellIcon className="w-5 h-5 sm:w-6 sm:h-6" />
                             {unreadCount > 0 && (
-                                <span className="absolute top-1 right-1 flex">
+                                <span className="absolute top-1.5 right-1.5 flex">
                                     <span className="
                                         animate-ping absolute inline-flex 
                                         h-3 w-3 
@@ -231,7 +232,7 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                                 rounded-2xl 
                                 shadow-2xl 
                                 border border-brand-border/50 
-                                z-50 
+                                z-[60]
                                 animate-slide-down
                                 max-h-96
                                 flex flex-col
@@ -372,7 +373,7 @@ const Header: React.FC<HeaderProps> = ({ pageTitle, toggleSidebar, setIsSearchOp
                         </button>
 
                         {isProfileOpen && (
-                            <div className="absolute top-full right-0 mt-3 w-72 bg-brand-surface rounded-2xl shadow-2xl border border-brand-border/50 z-50 animate-slide-down overflow-hidden">
+                            <div className="absolute top-full right-0 mt-3 w-72 bg-brand-surface rounded-2xl shadow-2xl border border-brand-border/50 z-[60] animate-slide-down overflow-hidden">
                                 <div className="p-4 border-b border-brand-border/50">
                                     <p className="font-semibold text-brand-text-light truncate">{currentUser?.fullName}</p>
                                     <p className="text-sm text-brand-text-secondary truncate">{currentUser?.email}</p>

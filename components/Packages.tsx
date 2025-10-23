@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { Package, AddOn, Project, PhysicalItem, Profile } from '../types';
+import { Package, AddOn, Project, PhysicalItem, Profile, REGIONS, Region } from '../types';
 import PageHeader from './PageHeader';
 import Modal from './Modal';
 import { PencilIcon, Trash2Icon, PlusIcon, Share2Icon, FileTextIcon, CameraIcon } from '../constants';
@@ -9,19 +9,22 @@ import { createAddOn as createAddOnRow, updateAddOn as updateAddOnRow, deleteAdd
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 }
+const titleCase = (s: string) => s.replace(/\b\w/g, c => c.toUpperCase());
 
 const emptyPackageForm = {
     name: '',
     price: '',
     category: '',
+    region: '' as '' | Region,
     processingTime: '',
     photographers: '',
     videographers: '',
     physicalItems: [{ name: '', price: '' as string | number }],
     digitalItems: [''],
     coverImage: '',
+    durationOptions: [{ label: '', price: '' as string | number, default: true }],
 };
-const emptyAddOnForm = { name: '', price: '' };
+const emptyAddOnForm = { name: '', price: '', region: '' };
 
 interface PackagesProps {
     packages: Package[];
@@ -43,6 +46,7 @@ const toBase64 = (file: File): Promise<string> => new Promise((resolve, reject) 
 const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setAddOns, projects, profile }) => {
   const [packageFormData, setPackageFormData] = useState<any>(emptyPackageForm);
   const [packageEditMode, setPackageEditMode] = useState<string | null>(null);
+  const [regionFilter, setRegionFilter] = useState<'' | Region>(REGIONS[0].value as any);
 
   const [addOnFormData, setAddOnFormData] = useState(emptyAddOnForm);
   const [addOnEditMode, setAddOnEditMode] = useState<string | null>(null);
@@ -61,9 +65,34 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
       });
   };
 
+  // Duration Options Handlers
+  const handleDurationOptionChange = (index: number, field: 'label' | 'price' | 'default', value: string | number | boolean) => {
+    const list = [...packageFormData.durationOptions];
+    if (field === 'default') {
+        // ensure only one default
+        list.forEach((opt: any, i: number) => { opt.default = i === index ? Boolean(value) : false; });
+    } else {
+        (list[index] as any)[field] = value;
+    }
+    setPackageFormData((prev: any) => ({ ...prev, durationOptions: list }));
+  };
+  const addDurationOption = () => {
+    setPackageFormData((prev: any) => ({ ...prev, durationOptions: [...(prev.durationOptions || []), { label: '', price: '' }] }));
+  };
+  const removeDurationOption = (index: number) => {
+    const list = [...packageFormData.durationOptions];
+    list.splice(index, 1);
+    // keep at least one
+    const final = list.length > 0 ? list : [{ label: '', price: '' }];
+    // ensure one default exists
+    if (!final.some((o: any) => o.default)) final[0].default = true;
+    setPackageFormData((prev: any) => ({ ...prev, durationOptions: final }));
+  };
+
   const packagesByCategory = useMemo(() => {
     const grouped: Record<string, Package[]> = {};
-    for (const pkg of packages) {
+    const filtered = regionFilter ? packages.filter(p => (p.region ? p.region === regionFilter : false)) : packages;
+    for (const pkg of filtered) {
         const category = pkg.category || 'Tanpa Kategori';
         if (!grouped[category]) {
             grouped[category] = [];
@@ -71,7 +100,38 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
         grouped[category].push(pkg);
     }
     return grouped;
+  }, [packages, regionFilter]);
+
+  const packagesByRegionCategory = useMemo(() => {
+    // Only used when no regionFilter applied: show separate boxes per region
+    const byRegion: Record<string, Record<string, Package[]>> = {};
+    const label = (r?: string | null) => r === 'bandung' ? 'Bandung' : r === 'jabodetabek' ? 'Jabodetabek' : r === 'banten' ? 'Banten' : 'Tanpa Wilayah';
+    for (const pkg of packages) {
+        const rl = label(pkg.region as any);
+        if (!byRegion[rl]) byRegion[rl] = {};
+        const cat = pkg.category || 'Tanpa Kategori';
+        if (!byRegion[rl][cat]) byRegion[rl][cat] = [];
+        byRegion[rl][cat].push(pkg);
+    }
+    return byRegion;
   }, [packages]);
+  // removed combined region view
+
+  const existingRegions = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of packages) {
+      if (p.region && String(p.region).trim() !== '') set.add(String(p.region));
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [packages]);
+  const unionRegions = useMemo(() => {
+    const base = REGIONS.map(r => r.value);
+    const extra = existingRegions.filter(er => !base.includes(er));
+    return [
+      ...REGIONS.map(r => ({ value: r.value, label: r.label })),
+      ...extra.map(er => ({ value: er, label: titleCase(er) })),
+    ];
+  }, [existingRegions]);
 
 
   // --- Package Handlers ---
@@ -152,12 +212,16 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
         name: pkg.name,
         price: pkg.price.toString(),
         category: pkg.category,
+        region: (pkg.region || '') as any,
         processingTime: pkg.processingTime,
         photographers: pkg.photographers || '',
         videographers: pkg.videographers || '',
         physicalItems: pkg.physicalItems.length > 0 ? pkg.physicalItems.map(item => ({...item, price: item.price.toString()})) : [{ name: '', price: '' }],
         digitalItems: pkg.digitalItems.length > 0 ? pkg.digitalItems : [''],
         coverImage: pkg.coverImage || '',
+        durationOptions: (pkg.durationOptions && pkg.durationOptions.length > 0)
+            ? pkg.durationOptions.map(o => ({ label: o.label, price: o.price.toString(), default: o.default }))
+            : [{ label: '', price: '' as string | number, default: true }],
     });
   }
 
@@ -179,15 +243,22 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
 
   const handlePackageSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!packageFormData.name || !packageFormData.price) {
-        alert('Nama Paket dan Harga tidak boleh kosong.');
+    const hasValidOptionsPre = Array.isArray(packageFormData.durationOptions) && packageFormData.durationOptions.some((o: any) => String(o.label||'').trim() !== '' && String(o.price||'') !== '');
+    if (!packageFormData.name || (!hasValidOptionsPre && !packageFormData.price)) {
+        alert('Nama Paket wajib diisi. Jika tidak mengisi Opsi Durasi, maka Harga (IDR) wajib diisi.');
         return;
     }
 
+    // Determine final base price: if duration options exist, base price mirrors the default option
+    const hasValidOptions = Array.isArray(packageFormData.durationOptions) && packageFormData.durationOptions.some((o: any) => String(o.label||'').trim() !== '' && String(o.price||'') !== '');
+    const defaultOption = hasValidOptions ? (packageFormData.durationOptions.find((o: any) => o.default) || packageFormData.durationOptions.find((o: any) => String(o.label||'').trim() !== '' && String(o.price||'') !== '')) : null;
+    const computedBasePrice = defaultOption ? Number(defaultOption.price || 0) : Number(packageFormData.price || 0);
+
     const packageData: Omit<Package, 'id'> = {
         name: packageFormData.name,
-        price: Number(packageFormData.price),
+        price: computedBasePrice,
         category: packageFormData.category,
+        region: packageFormData.region ? String(packageFormData.region).trim().toLowerCase() : undefined,
         processingTime: packageFormData.processingTime,
         photographers: packageFormData.photographers,
         videographers: packageFormData.videographers,
@@ -196,6 +267,11 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
             .map((item: { name: string, price: string | number }) => ({ ...item, name: item.name, price: Number(item.price || 0) })),
         digitalItems: packageFormData.digitalItems.filter((item: string) => item.trim() !== ''),
         coverImage: packageFormData.coverImage,
+        durationOptions: Array.isArray(packageFormData.durationOptions)
+            ? packageFormData.durationOptions
+                .filter((opt: any) => String(opt.label || '').trim() !== '' && Number(opt.price) >= 0)
+                .map((opt: any, i: number) => ({ label: String(opt.label).trim(), price: Number(opt.price), default: !!opt.default }))
+            : undefined,
     };
     
     try {
@@ -238,6 +314,7 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
         const addOnData: Omit<AddOn, 'id'> = {
             name: addOnFormData.name,
             price: Number(addOnFormData.price),
+            region: addOnFormData.region ? String(addOnFormData.region).trim().toLowerCase() : undefined,
         };
         
         try {
@@ -273,6 +350,7 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
     setAddOnFormData({
         name: addOn.name,
         price: addOn.price.toString(),
+        region: (addOn.region || '') as any,
     });
   }
 
@@ -305,34 +383,53 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
                     </button>
                 </div>
             </PageHeader>
+            <div className="flex flex-wrap gap-2 -mt-3">
+                {unionRegions.map(r => (
+                    <button
+                        key={r.value}
+                        onClick={() => setRegionFilter(r.value as any)}
+                        className={`px-3 py-1 rounded-full text-sm border ${regionFilter === (r.value as any) ? 'bg-brand-accent text-white border-brand-accent' : 'bg-brand-surface border-brand-border text-brand-text-secondary hover:text-brand-text-light'}`}
+                    >
+                        {r.label}
+                    </button>
+                ))}
+            </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
                 <div className="lg:col-span-2 space-y-8">
                     {(Object.entries(packagesByCategory) as [string, Package[]][]).map(([category, pkgs]) => (
                         <div key={category}>
-                            <h3 className="text-xl font-bold text-gradient mb-4">{category}</h3>
-                            <div className="grid md:grid-cols-2 gap-6">
+                            <h3 className="text-lg md:text-xl font-bold text-gradient mb-3 md:mb-4">{category}</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                                 {pkgs.map(pkg => (
                                     <div key={pkg.id} className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border flex flex-col overflow-hidden">
                                         {pkg.coverImage ? (
-                                            <img src={pkg.coverImage} alt={pkg.name} className="w-full h-40 object-cover" />
+                                            <img src={pkg.coverImage} alt={pkg.name} className="w-full h-32 md:h-40 object-cover" loading="lazy" />
                                         ) : (
-                                            <div className="w-full h-40 bg-brand-bg flex items-center justify-center">
-                                                <CameraIcon className="w-12 h-12 text-brand-text-secondary" />
+                                            <div className="w-full h-32 md:h-40 bg-brand-bg flex items-center justify-center">
+                                                <CameraIcon className="w-10 md:w-12 h-10 md:h-12 text-brand-text-secondary" />
                                             </div>
                                         )}
-                                        <div className="p-4 flex-grow flex flex-col">
-                                            <h4 className="font-bold text-brand-text-light">{pkg.name}</h4>
-                                            <p className="text-2xl font-bold text-brand-accent my-2">{formatCurrency(pkg.price)}</p>
-                                            <p className="text-xs text-brand-text-secondary mb-3">Waktu Pengerjaan: {pkg.processingTime}</p>
-                                            <div className="text-sm space-y-2 flex-grow">
-                                                {(pkg.photographers || pkg.videographers) && <div><h5 className="font-semibold text-brand-text-primary text-xs uppercase tracking-wider mb-1">Tim</h5><p className="text-brand-text-secondary">{[pkg.photographers, pkg.videographers].filter(Boolean).join(' & ')}</p></div>}
-                                                {pkg.digitalItems.length > 0 && <div><h5 className="font-semibold text-brand-text-primary text-xs uppercase tracking-wider mb-1">Digital</h5><ul className="list-disc list-inside text-brand-text-secondary">{pkg.digitalItems.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
-                                                {pkg.physicalItems.length > 0 && <div><h5 className="font-semibold text-brand-text-primary text-xs uppercase tracking-wider mb-1">Outfut Pisik</h5><ul className="list-disc list-inside text-brand-text-secondary">{pkg.physicalItems.map((item, i) => <li key={i}>{item.name}</li>)}</ul></div>}
+                                        <div className="p-3 md:p-4 flex-grow flex flex-col">
+                                            <h4 className="font-bold text-sm md:text-base text-brand-text-light">{pkg.name}</h4>
+                                            <p className="text-lg md:text-2xl font-bold text-brand-accent my-2">
+                                                {pkg.durationOptions && pkg.durationOptions.length > 0 ? (
+                                                    <span className="block text-xs md:text-sm text-brand-text-secondary">
+                                                        {pkg.durationOptions.map((o, i) => `${o.label}: ${formatCurrency(o.price)}`).join(' · ')}
+                                                    </span>
+                                                ) : (
+                                                    formatCurrency(pkg.price)
+                                                )}
+                                            </p>
+                                            <p className="text-[10px] md:text-xs text-brand-text-secondary mb-2 md:mb-3">Waktu Pengerjaan: {pkg.processingTime}</p>
+                                            <div className="text-xs md:text-sm space-y-2 flex-grow">
+                                                {(pkg.photographers || pkg.videographers) && <div><h5 className="font-semibold text-brand-text-primary text-[10px] md:text-xs uppercase tracking-wider mb-1">Tim</h5><p className="text-brand-text-secondary">{[pkg.photographers, pkg.videographers].filter(Boolean).join(' & ')}</p></div>}
+                                                {pkg.digitalItems.length > 0 && <div><h5 className="font-semibold text-brand-text-primary text-[10px] md:text-xs uppercase tracking-wider mb-1">Digital</h5><ul className="list-disc list-inside text-brand-text-secondary">{pkg.digitalItems.map((item, i) => <li key={i}>{item}</li>)}</ul></div>}
+                                                {pkg.physicalItems.length > 0 && <div><h5 className="font-semibold text-brand-text-primary text-[10px] md:text-xs uppercase tracking-wider mb-1">Outfut Pisik</h5><ul className="list-disc list-inside text-brand-text-secondary">{pkg.physicalItems.map((item, i) => <li key={i}>{item.name}</li>)}</ul></div>}
                                             </div>
-                                            <div className="flex gap-2 mt-4 pt-4 border-t border-brand-border">
-                                                <button onClick={() => handlePackageEdit(pkg)} className="button-secondary flex-1 text-sm">Edit</button>
-                                                <button onClick={() => handlePackageDelete(pkg.id)} className="button-secondary text-brand-danger border-brand-danger hover:bg-brand-danger/10 flex-shrink-0 px-3"><Trash2Icon className="w-4 h-4"/></button>
+                                            <div className="flex gap-2 mt-3 md:mt-4 pt-3 md:pt-4 border-t border-brand-border">
+                                                <button onClick={() => handlePackageEdit(pkg)} className="button-secondary flex-1 text-xs md:text-sm">Edit</button>
+                                                <button onClick={() => handlePackageDelete(pkg.id)} className="button-secondary text-brand-danger border-brand-danger hover:bg-brand-danger/10 flex-shrink-0 px-2 md:px-3"><Trash2Icon className="w-4 h-4"/></button>
                                             </div>
                                         </div>
                                     </div>
@@ -342,12 +439,12 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
                     ))}
                 </div>
                 
-                <aside className="lg:col-span-1 space-y-6 sticky top-24">
+                <aside className="lg:col-span-1 space-y-6 lg:sticky lg:top-24">
                     <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border">
-                        <h3 className="font-semibold text-brand-text-light p-4 border-b border-brand-border">Add-Ons</h3>
-                        <div className="p-4 space-y-2 max-h-60 overflow-y-auto">
-                            {addOns.map(addon => (
-                                <div key={addon.id} className="flex justify-between items-center bg-brand-bg p-2 rounded-md text-sm">
+                        <h3 className="font-semibold text-sm md:text-base text-brand-text-light p-3 md:p-4 border-b border-brand-border">Add-Ons</h3>
+                        <div className="p-3 md:p-4 space-y-2 max-h-60 overflow-y-auto">
+                            {(regionFilter ? addOns.filter(a => a.region === regionFilter) : addOns).map(addon => (
+                                <div key={addon.id} className="flex justify-between items-center bg-brand-bg p-2 rounded-md text-xs md:text-sm">
                                     <span className="text-brand-text-primary">{addon.name} - {formatCurrency(addon.price)}</span>
                                     <div className="flex gap-1">
                                         <button onClick={() => handleAddOnEdit(addon)} className="p-1.5 text-brand-text-secondary hover:text-brand-accent"><PencilIcon className="w-4 h-4"/></button>
@@ -356,7 +453,7 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
                                 </div>
                             ))}
                         </div>
-                        <form onSubmit={handleAddOnSubmit} className="p-4 border-t border-brand-border space-y-2">
+                        <form onSubmit={handleAddOnSubmit} className="p-3 md:p-4 border-t border-brand-border space-y-2">
                              <div className="input-group">
                                 <input type="text" id="addOnName" name="name" value={addOnFormData.name} onChange={handleAddOnInputChange} className="input-field" placeholder=" " required />
                                 <label htmlFor="addOnName" className="input-label">{addOnEditMode ? 'Edit Nama' : 'Nama Add-On Baru'}</label>
@@ -364,6 +461,27 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
                              <div className="input-group">
                                 <input type="number" id="addOnPrice" name="price" value={addOnFormData.price} onChange={handleAddOnInputChange} className="input-field" placeholder=" " required />
                                 <label htmlFor="addOnPrice" className="input-label">Harga</label>
+                            </div>
+                            <div className="input-group">
+                                <input
+                                    type="text"
+                                    id="addOnRegion"
+                                    name="region"
+                                    list="region-suggestions"
+                                    value={addOnFormData.region}
+                                    onChange={handleAddOnInputChange}
+                                    className="input-field"
+                                    placeholder=" "
+                                />
+                                <label htmlFor="addOnRegion" className="input-label">Wilayah (opsional)</label>
+                            </div>
+                            <div className="flex flex-wrap gap-2">
+                                {unionRegions.map(r => (
+                                    <button type="button" key={r.value} onClick={() => setAddOnFormData(prev => ({...prev, region: r.value}))} className={`px-2 py-1 rounded-full text-xs border ${addOnFormData.region === r.value ? 'bg-brand-accent text-white border-brand-accent' : 'bg-brand-bg border-brand-border text-brand-text-secondary hover:text-brand-text-light'}`}>{r.label}</button>
+                                ))}
+                                {addOnFormData.region && (
+                                    <button type="button" onClick={() => setAddOnFormData(prev => ({...prev, region: ''}))} className="px-2 py-1 rounded-full text-xs border bg-brand-bg border-brand-border text-brand-danger">Kosongkan</button>
+                                )}
                             </div>
                             <div className="flex gap-2 justify-end">
                                 {addOnEditMode && <button type="button" onClick={handleAddOnCancelEdit} className="button-secondary text-sm">Batal</button>}
@@ -375,37 +493,165 @@ const Packages: React.FC<PackagesProps> = ({ packages, setPackages, addOns, setA
             </div>
 
             <Modal isOpen={packageEditMode !== null} onClose={handlePackageCancelEdit} title={packageEditMode === 'new' ? 'Tambah Paket Baru' : 'Edit Paket'} size="3xl">
-                <form onSubmit={handlePackageSubmit} className="space-y-4 max-h-[70vh] overflow-y-auto pr-2 form-compact form-compact--ios-scale">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="input-group"><input type="text" name="name" value={packageFormData.name} onChange={handlePackageInputChange} className="input-field" placeholder=" " required /><label className="input-label">Nama Paket</label></div>
-                        <div className="input-group"><input type="number" name="price" value={packageFormData.price} onChange={handlePackageInputChange} className="input-field" placeholder=" " required /><label className="input-label">Harga (IDR)</label></div>
-                    </div>
-                     <div className="input-group">
-                        <select name="category" value={packageFormData.category} onChange={handlePackageInputChange} className="input-field" required>
-                            <option value="">Pilih kategori...</option>
-                            {profile.packageCategories.map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                        </select>
-                        <label className="input-label">Kategori</label>
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="input-group"><input type="text" name="processingTime" value={packageFormData.processingTime} onChange={handlePackageInputChange} className="input-field" placeholder=" "/><label className="input-label">Waktu Pengerjaan</label></div>
-                        <div className="input-group"><input type="text" name="photographers" value={packageFormData.photographers} onChange={handlePackageInputChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Fotografer</label></div>
-                        <div className="input-group"><input type="text" name="videographers" value={packageFormData.videographers} onChange={handlePackageInputChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Videografer</label></div>
-                    </div>
-                    
-                    <div className="input-group"><label className="input-label !static !-top-4 !text-brand-accent">Cover Image</label><input type="file" onChange={handleCoverImageChange} className="input-field" accept="image/*" /></div>
-                    
-                    <div className="pt-2"><h4 className="font-semibold text-brand-text-light">Item Digital</h4>{packageFormData.digitalItems.map((item: string, index: number) => (<div key={index} className="flex items-center gap-2 mt-1"><input type="text" value={item} onChange={e => handleDigitalItemChange(index, e)} className="input-field flex-grow" /><button type="button" onClick={() => removeDigitalItem(index)} className="p-2 text-brand-danger"><Trash2Icon className="w-4 h-4"/></button></div>))}<button type="button" onClick={addDigitalItem} className="text-sm font-semibold text-brand-accent mt-2">+ Tambah Item</button></div>
-                    <div className="pt-2"><h4 className="font-semibold text-brand-text-light">Item Outfut Pisik</h4>{packageFormData.physicalItems.map((item: {name: string, price: string|number}, index: number) => (<div key={index} className="flex items-center gap-2 mt-1"><input type="text" name="name" value={item.name} onChange={e => handlePhysicalItemChange(index, e)} className="input-field flex-grow" placeholder="Nama Item" /><input type="number" name="price" value={item.price} onChange={e => handlePhysicalItemChange(index, e)} className="input-field w-32" placeholder="Harga" /><button type="button" onClick={() => removePhysicalItem(index)} className="p-2 text-brand-danger"><Trash2Icon className="w-4 h-4"/></button></div>))}<button type="button" onClick={addPhysicalItem} className="text-sm font-semibold text-brand-accent mt-2">+ Tambah Item</button></div>
+                <form onSubmit={handlePackageSubmit} className="space-y-5 md:space-y-6 max-h-[70vh] overflow-y-auto pr-2 pb-4 form-compact form-compact--ios-scale">
+                    {/* Section 1: Informasi Dasar */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Informasi Dasar Paket</h4>
+                        <p className="text-xs text-brand-text-secondary mb-4">Masukkan nama dan harga paket layanan Anda. Nama harus jelas dan menarik untuk klien.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="input-group"><input type="text" name="name" value={packageFormData.name} onChange={handlePackageInputChange} className="input-field" placeholder=" " required /><label className="input-label">Nama Paket</label></div>
+                            {(() => {
+                                const hasValidOptions = Array.isArray(packageFormData.durationOptions) && packageFormData.durationOptions.some((o: any) => String(o.label||'').trim() !== '' && String(o.price||'') !== '');
+                                if (hasValidOptions) {
+                                    const def = packageFormData.durationOptions.find((o: any) => o.default) || packageFormData.durationOptions.find((o: any) => String(o.label||'').trim() !== '' && String(o.price||'') !== '');
+                                    return (
+                                        <div className="input-group">
+                                            <input type="text" className="input-field" value={def ? `${def.label}: ${new Intl.NumberFormat('id-ID',{style:'currency',currency:'IDR',minimumFractionDigits:0}).format(Number(def.price||0))}` : 'Mengikuti opsi durasi default'} disabled placeholder=" "/>
+                                            <label className="input-label">Harga (mengikuti opsi default)</label>
+                                        </div>
+                                    );
+                                }
+                                return (
+                                    <div className="input-group"><input type="number" name="price" value={packageFormData.price} onChange={handlePackageInputChange} className="input-field" placeholder=" " required /><label className="input-label">Harga (IDR)</label></div>
+                                );
+                            })()}
+                        </div>
+                    </section>
 
-                    <div className="flex justify-end gap-3 pt-4 border-t border-brand-border"><button type="button" onClick={handlePackageCancelEdit} className="button-secondary">Batal</button><button type="submit" className="button-primary">{packageEditMode === 'new' ? 'Simpan' : 'Update'}</button></div>
+                    {/* Section 2: Opsi Durasi */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Opsi Durasi & Harga (Opsional)</h4>
+                        <p className="text-xs text-brand-text-secondary mb-3">Tambahkan variasi durasi seperti 2 Jam, 4 Jam, 8 Jam, Full Day dengan harga berbeda. Pilih satu sebagai default. Jika tidak ada opsi, sistem akan menggunakan harga dasar di atas.</p>
+                        {packageFormData.durationOptions?.map((opt: any, index: number) => (
+                            <div key={index} className="grid grid-cols-1 md:grid-cols-5 gap-2 items-center mt-2">
+                                <input type="text" value={opt.label} onChange={e => handleDurationOptionChange(index, 'label', e.target.value)} className="input-field md:col-span-2" placeholder="Label (cth: 8 Jam / Full Day)" />
+                                <input type="number" value={opt.price} onChange={e => handleDurationOptionChange(index, 'price', e.target.value)} className="input-field md:col-span-2" placeholder="Harga" />
+                                <label className="flex items-center gap-2 text-sm text-brand-text-secondary"><input type="radio" name="durationDefault" checked={!!opt.default} onChange={() => handleDurationOptionChange(index, 'default', true)} /> Default</label>
+                                <button type="button" onClick={() => removeDurationOption(index)} className="p-2 text-brand-danger md:col-span-1 justify-self-end"><Trash2Icon className="w-4 h-4"/></button>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addDurationOption} className="text-sm font-semibold text-brand-accent mt-3">+ Tambah Opsi Durasi</button>
+                    </section>
+
+                    {/* Section 3: Kategori & Wilayah */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Kategori & Wilayah</h4>
+                        <p className="text-xs text-brand-text-secondary mb-4">Pilih kategori paket dan tentukan wilayah layanan. Wilayah membantu klien menemukan paket yang sesuai dengan lokasi mereka.</p>
+                        <div className="input-group">
+                            <select name="category" value={packageFormData.category} onChange={handlePackageInputChange} className="input-field" required>
+                                <option value="">Pilih kategori...</option>
+                                {(profile?.packageCategories || []).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                            </select>
+                            <label className="input-label">Kategori</label>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4">
+                            <div className="input-group">
+                                <input
+                                    type="text"
+                                    name="region"
+                                    list="region-suggestions"
+                                    value={packageFormData.region}
+                                    onChange={handlePackageInputChange}
+                                    className="input-field"
+                                    placeholder=" "
+                                />
+                                <label className="input-label">Wilayah (opsional)</label>
+                                <datalist id="region-suggestions">
+                                    {REGIONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                                </datalist>
+                                <div className="mt-2 flex flex-wrap gap-2">
+                                  {[...REGIONS.map(r => r.value), ...existingRegions.filter(er => !REGIONS.some(r => r.value === er))].map(val => (
+                                    <button type="button" key={val} onClick={() => setPackageFormData((prev:any) => ({...prev, region: val}))} className={`px-2 py-1 rounded-full text-xs border ${packageFormData.region === val ? 'bg-brand-accent text-white border-brand-accent' : 'bg-brand-bg border-brand-border text-brand-text-secondary hover:text-brand-text-light'}`}>{val.replace(/\b\w/g, c => c.toUpperCase())}</button>
+                                  ))}
+                                  {packageFormData.region && (
+                                    <button type="button" onClick={() => setPackageFormData((prev:any) => ({...prev, region: ''}))} className="px-2 py-1 rounded-full text-xs border bg-brand-bg border-brand-border text-brand-danger">Kosongkan</button>
+                                  )}
+                                </div>
+                            </div>
+                            <div className="md:col-span-2" />
+                        </div>
+                    </section>
+
+                    {/* Section 4: Detail Tim & Waktu */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Detail Tim & Waktu Pengerjaan</h4>
+                        <p className="text-xs text-brand-text-secondary mb-4">Informasi tentang waktu pengerjaan dan jumlah tim yang akan ditugaskan untuk paket ini.</p>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="input-group"><input type="text" name="processingTime" value={packageFormData.processingTime} onChange={handlePackageInputChange} className="input-field" placeholder=" "/><label className="input-label">Waktu Pengerjaan</label></div>
+                            <div className="input-group"><input type="text" name="photographers" value={packageFormData.photographers} onChange={handlePackageInputChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Fotografer</label></div>
+                            <div className="input-group"><input type="text" name="videographers" value={packageFormData.videographers} onChange={handlePackageInputChange} className="input-field" placeholder=" "/><label className="input-label">Jumlah Videografer</label></div>
+                        </div>
+                    </section>
+
+                    {/* Section 5: Cover Image */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Gambar Sampul</h4>
+                        <p className="text-xs text-brand-text-secondary mb-4">Upload gambar menarik untuk mempromosikan paket Anda di halaman publik.</p>
+                        <div className="input-group"><label className="input-label !static !-top-4 !text-brand-accent">Cover Image</label><input type="file" onChange={handleCoverImageChange} className="input-field" accept="image/*" /></div>
+                    </section>
+
+                    {/* Section 6: Item Digital */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Item Digital</h4>
+                        <p className="text-xs text-brand-text-secondary mb-3">Daftar file digital yang akan diterima klien, seperti foto edited, video cinematic, dll.</p>
+                        {packageFormData.digitalItems.map((item: string, index: number) => (
+                            <div key={index} className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mt-2">
+                                <input type="text" value={item} onChange={e => handleDigitalItemChange(index, e)} className="input-field flex-grow" placeholder="Contoh: 300 Foto Edited" />
+                                <button type="button" onClick={() => removeDigitalItem(index)} className="button-secondary !px-3 !py-2 text-brand-danger self-end md:self-center"><Trash2Icon className="w-4 h-4"/></button>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addDigitalItem} className="text-sm font-semibold text-brand-accent mt-3">+ Tambah Item Digital</button>
+                    </section>
+
+                    {/* Section 7: Item Output Fisik */}
+                    <section className="bg-brand-surface md:bg-transparent rounded-2xl md:rounded-none p-4 md:p-0 border md:border-0 border-brand-border">
+                        <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-brand-border pb-2 mb-4">Item Output Fisik</h4>
+                        <p className="text-xs text-brand-text-secondary mb-3">Produk fisik yang akan dicetak, seperti album, frame, canvas, dll beserta harganya.</p>
+                        {packageFormData.physicalItems.map((item: {name: string, price: string|number}, index: number) => (
+                            <div key={index} className="flex flex-col md:flex-row items-stretch md:items-center gap-2 mt-2">
+                                <input type="text" name="name" value={item.name} onChange={e => handlePhysicalItemChange(index, e)} className="input-field flex-grow" placeholder="Nama Item (cth: Album 20x30)" />
+                                <input type="number" name="price" value={item.price} onChange={e => handlePhysicalItemChange(index, e)} className="input-field md:w-40" placeholder="Harga" />
+                                <button type="button" onClick={() => removePhysicalItem(index)} className="button-secondary !px-3 !py-2 text-brand-danger self-end md:self-center"><Trash2Icon className="w-4 h-4"/></button>
+                            </div>
+                        ))}
+                        <button type="button" onClick={addPhysicalItem} className="text-sm font-semibold text-brand-accent mt-3">+ Tambah Item Fisik</button>
+                    </section>
+
+                    <div className="flex flex-col md:flex-row justify-end items-stretch md:items-center gap-3 pt-6 border-t border-brand-border sticky bottom-0 bg-brand-surface">
+                        <button type="button" onClick={handlePackageCancelEdit} className="button-secondary w-full md:w-auto order-2 md:order-1">Batal</button>
+                        <button type="submit" className="button-primary w-full md:w-auto order-1 md:order-2 active:scale-95 transition-transform">{packageEditMode === 'new' ? 'Simpan' : 'Update'}</button>
+                    </div>
                 </form>
             </Modal>
 
-            <Modal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} title="Bagikan Halaman Paket Publik">
-                <p className="text-sm text-brand-text-secondary mb-4">Bagikan tautan ini kepada calon klien untuk melihat semua paket yang Anda tawarkan.</p>
-                <div className="input-group"><input type="text" readOnly value={publicPackagesUrl} className="input-field !bg-brand-input" /><label className="input-label">Tautan Publik</label></div>
-                <div className="text-right mt-4"><button onClick={copyPackagesLinkToClipboard} className="button-primary">Salin Tautan</button></div>
+            <Modal isOpen={isShareModalOpen} onClose={() => setIsShareModalOpen(false)} title="Tautan Booking per Wilayah">
+                <div className="space-y-4">
+                    <p className="text-sm text-brand-text-secondary mb-4">
+                        Bagikan tautan booking khusus untuk setiap wilayah. Setiap tautan akan menampilkan paket dan add-ons yang sesuai dengan wilayah tersebut.
+                    </p>
+                    <div className="grid grid-cols-1 gap-4">
+                        {unionRegions.map(r => (
+                            <div key={r.value} className="space-y-2">
+                                <div className="input-group">
+                                    <input 
+                                        type="text" 
+                                        readOnly 
+                                        value={`${window.location.origin}${window.location.pathname}#/public-booking?region=${r.value}`} 
+                                        className="input-field !bg-brand-input text-xs sm:text-sm" 
+                                        onClick={(e) => {
+                                            e.currentTarget.select();
+                                            navigator.clipboard.writeText(e.currentTarget.value);
+                                        }}
+                                    />
+                                    <label className="input-label">Booking - {r.label}</label>
+                                </div>
+                                <p className="text-xs text-brand-text-secondary pl-1">
+                                    Tautan khusus untuk wilayah {r.label}. Klik untuk menyalin.
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
             </Modal>
             
             <Modal isOpen={isInfoModalOpen} onClose={() => setIsInfoModalOpen(false)} title="Panduan Halaman Paket">

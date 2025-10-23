@@ -13,6 +13,8 @@ const getInitials = (name: string) => {
 };
 
 const weekdays = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
+const weekdaysFull = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const hours = Array.from({ length: 24 }, (_, i) => `${i.toString().padStart(2, '0')}:00`);
 
 const eventTypeColors: { [key: string]: string } = {
     'Meeting Klien': '#3b82f6',
@@ -60,12 +62,12 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ profile, isClientProj
         <h3 className="text-xs font-semibold text-brand-text-secondary uppercase tracking-wider mb-2">Filter Kalender</h3>
         <div className="space-y-1">
             <label className="flex items-center p-2 rounded-lg hover:bg-brand-bg cursor-pointer">
-                <input type="checkbox" className="h-4 w-4 rounded" checked={isClientProjectVisible} onChange={(e) => onClientFilterChange(e.target.checked)} style={{accentColor: '#ef4444'}} />
+                <input type="checkbox" className="h-4 w-4 sm:h-5 sm:w-5 rounded flex-shrink-0" checked={isClientProjectVisible} onChange={(e) => onClientFilterChange(e.target.checked)} style={{accentColor: '#ef4444'}} />
                 <span className="ml-2 text-sm font-medium text-brand-text-light">Proyek Klien</span>
             </label>
             {profile.eventTypes.map(type => (
                  <label key={type} className="flex items-center p-2 rounded-lg hover:bg-brand-bg cursor-pointer">
-                     <input type="checkbox" className="h-4 w-4 rounded" checked={visibleEventTypes.has(type)} onChange={() => onEventTypeFilterChange(type)} style={{accentColor: eventTypeColors[type] || '#94a3b8'}}/>
+                     <input type="checkbox" className="h-4 w-4 sm:h-5 sm:w-5 rounded flex-shrink-0" checked={visibleEventTypes.has(type)} onChange={() => onEventTypeFilterChange(type)} style={{accentColor: eventTypeColors[type] || '#94a3b8'}}/>
                      <span className="w-2 h-2 rounded-full ml-2" style={{backgroundColor: eventTypeColors[type] || '#94a3b8'}}></span>
                      <span className="ml-2 text-sm font-medium text-brand-text-light">{type}</span>
                  </label>
@@ -77,30 +79,94 @@ const CalendarSidebar: React.FC<CalendarSidebarProps> = ({ profile, isClientProj
 
 interface CalendarHeaderProps {
     currentDate: Date;
-    viewMode: 'Month' | 'Agenda';
+    viewMode: 'Day' | 'Week' | 'Month' | 'Agenda';
     onPrev: () => void;
     onNext: () => void;
     onToday: () => void;
-    onViewModeChange: (mode: 'Month' | 'Agenda') => void;
+    onViewModeChange: (mode: 'Day' | 'Week' | 'Month' | 'Agenda') => void;
     onInfoClick: () => void;
 }
 
-const CalendarHeader: React.FC<CalendarHeaderProps> = ({ currentDate, viewMode, onPrev, onNext, onToday, onViewModeChange, onInfoClick }) => (
-     <div className="flex-shrink-0 p-4 flex items-center justify-between border-b border-brand-border">
-        <div className="flex items-center gap-2">
-            <button onClick={onPrev} className="p-2 rounded-full hover:bg-brand-input"><ChevronLeftIcon className="w-5 h-5"/></button>
-            <button onClick={onNext} className="p-2 rounded-full hover:bg-brand-input"><ChevronRightIcon className="w-5 h-5"/></button>
-            <h2 className="text-lg font-semibold text-brand-text-light ml-2 hidden sm:block">{currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}</h2>
-        </div>
-        <div className="flex items-center gap-2">
-            <button onClick={onInfoClick} className="button-secondary px-3 py-1.5 text-sm hidden md:block">Pelajari Halaman Ini</button>
-            <button onClick={onToday} className="button-secondary px-3 py-1.5 text-sm">Hari Ini</button>
-            <div className="p-1 bg-brand-bg rounded-lg hidden sm:flex">
-                {(['Month', 'Agenda'] as const).map(v => (<button key={v} onClick={() => onViewModeChange(v)} className={`px-3 py-1 text-sm font-medium rounded-md ${viewMode === v ? 'bg-brand-surface shadow-sm' : 'text-brand-text-secondary'}`}>{v}</button>))}
+const CalendarHeader: React.FC<CalendarHeaderProps> = ({ currentDate, viewMode, onPrev, onNext, onToday, onViewModeChange, onInfoClick }) => {
+    const getHeaderTitle = () => {
+        if (viewMode === 'Day') {
+            return currentDate.toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+        } else if (viewMode === 'Week') {
+            const weekStart = new Date(currentDate);
+            weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            return `${weekStart.getDate()} - ${weekEnd.getDate()} ${weekEnd.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}`;
+        }
+        return currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    };
+
+    const getMobileTitle = () => {
+        if (viewMode === 'Day') {
+            return currentDate.toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' });
+        } else if (viewMode === 'Week') {
+            const weekStart = new Date(currentDate);
+            weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+            const weekEnd = new Date(weekStart);
+            weekEnd.setDate(weekStart.getDate() + 6);
+            return `${weekStart.getDate()} - ${weekEnd.getDate()} ${weekEnd.toLocaleDateString('id-ID', { month: 'short' })}`;
+        }
+        return currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    };
+
+    return (
+        <div className="flex-shrink-0 border-b border-brand-border">
+            {/* Mobile Header */}
+            <div className="sm:hidden">
+                <div className="p-3 flex items-center justify-between">
+                    <h2 className="text-sm font-semibold text-brand-text-light">{getMobileTitle()}</h2>
+                    <button onClick={onToday} className="button-secondary px-3 py-1.5 text-xs">Hari Ini</button>
+                </div>
+                <div className="px-3 pb-3 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                        <button onClick={onPrev} className="p-2 rounded-full hover:bg-brand-input active:bg-brand-input"><ChevronLeftIcon className="w-5 h-5"/></button>
+                        <button onClick={onNext} className="p-2 rounded-full hover:bg-brand-input active:bg-brand-input"><ChevronRightIcon className="w-5 h-5"/></button>
+                    </div>
+                    <div className="flex-1 flex p-0.5 bg-brand-bg rounded-lg overflow-x-auto">
+                        {(['Day', 'Week', 'Month', 'Agenda'] as const).map(v => (
+                            <button 
+                                key={v} 
+                                onClick={() => onViewModeChange(v)} 
+                                className={`flex-shrink-0 px-2 py-1.5 text-[10px] font-medium rounded-md transition-all ${viewMode === v ? 'bg-brand-surface shadow-sm text-brand-text-light' : 'text-brand-text-secondary'}`}
+                            >
+                                {v === 'Day' ? 'Hari' : v === 'Week' ? 'Minggu' : v}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Desktop Header */}
+            <div className="hidden sm:flex p-4 items-center justify-between">
+                <div className="flex items-center gap-2">
+                    <button onClick={onPrev} className="p-2 rounded-full hover:bg-brand-input"><ChevronLeftIcon className="w-5 h-5"/></button>
+                    <button onClick={onNext} className="p-2 rounded-full hover:bg-brand-input"><ChevronRightIcon className="w-5 h-5"/></button>
+                    <h2 className="text-lg font-semibold text-brand-text-light ml-2">{getHeaderTitle()}</h2>
+                </div>
+                <div className="flex items-center gap-2">
+                    <button onClick={onInfoClick} className="button-secondary px-3 py-1.5 text-sm hidden md:block">Pelajari Halaman Ini</button>
+                    <button onClick={onToday} className="button-secondary px-3 py-1.5 text-sm">Hari Ini</button>
+                    <div className="p-1 bg-brand-bg rounded-lg flex">
+                        {(['Day', 'Week', 'Month', 'Agenda'] as const).map(v => (
+                            <button 
+                                key={v} 
+                                onClick={() => onViewModeChange(v)} 
+                                className={`px-3 py-1 text-sm font-medium rounded-md ${viewMode === v ? 'bg-brand-surface shadow-sm' : 'text-brand-text-secondary'}`}
+                            >
+                                {v === 'Day' ? 'Hari' : v === 'Week' ? 'Minggu' : v}
+                            </button>
+                        ))}
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
-);
+    );
+};
 
 
 interface MonthViewProps {
@@ -171,6 +237,217 @@ const AgendaView: React.FC<AgendaViewProps> = ({ agendaByDate, profile, onEventC
         {agendaByDate.length === 0 && <p className="text-center text-brand-text-secondary py-16">Tidak ada acara mendatang.</p>}
     </div>
 );
+
+
+interface WeekViewProps {
+    currentDate: Date;
+    eventsByDate: Map<string, Project[]>;
+    profile: Profile;
+    onDayClick: (date: Date) => void;
+    onEventClick: (event: Project) => void;
+}
+
+const WeekView: React.FC<WeekViewProps> = ({ currentDate, eventsByDate, profile, onDayClick, onEventClick }) => {
+    const weekStart = new Date(currentDate);
+    weekStart.setDate(currentDate.getDate() - currentDate.getDay());
+    
+    const weekDays = Array.from({ length: 7 }, (_, i) => {
+        const day = new Date(weekStart);
+        day.setDate(weekStart.getDate() + i);
+        return day;
+    });
+
+    const getEventPosition = (event: Project) => {
+        if (!event.startTime) return { top: 0, height: 60 };
+        const [hours, minutes] = event.startTime.split(':').map(Number);
+        const startMinutes = hours * 60 + minutes;
+        
+        let endMinutes = startMinutes + 60;
+        if (event.endTime) {
+            const [endHours, endMins] = event.endTime.split(':').map(Number);
+            endMinutes = endHours * 60 + endMins;
+        }
+        
+        const duration = endMinutes - startMinutes;
+        return {
+            top: (startMinutes / 60) * 60,
+            height: Math.max((duration / 60) * 60, 30)
+        };
+    };
+
+    return (
+        <div className="flex flex-col h-full overflow-hidden">
+            {/* Week header */}
+            <div className="grid grid-cols-8 border-b border-brand-border bg-brand-bg sticky top-0 z-10">
+                <div className="p-1 sm:p-2 text-[10px] sm:text-xs text-brand-text-secondary border-r border-brand-border">Waktu</div>
+                {weekDays.map((day, i) => {
+                    const isToday = day.toDateString() === new Date().toDateString();
+                    return (
+                        <div key={i} className={`p-1 sm:p-2 text-center border-r border-brand-border ${isToday ? 'bg-brand-accent/10' : ''}`}>
+                            <div className="text-[10px] sm:text-xs text-brand-text-secondary">{weekdays[day.getDay()]}</div>
+                            <div className={`text-sm sm:text-lg font-semibold mt-0.5 sm:mt-1 ${isToday ? 'text-brand-accent' : 'text-brand-text-light'}`}>
+                                {day.getDate()}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Time grid */}
+            <div className="flex-1 overflow-y-auto overflow-x-auto">
+                <div className="grid grid-cols-8 relative" style={{ minHeight: '1440px', minWidth: '600px' }}>
+                    <div className="border-r border-brand-border">
+                        {hours.map((hour) => (
+                            <div key={hour} className="h-[60px] border-b border-brand-border px-1 sm:px-2 py-1 text-[10px] sm:text-xs text-brand-text-secondary">
+                                {hour}
+                            </div>
+                        ))}
+                    </div>
+
+                    {weekDays.map((day, dayIndex) => {
+                        const events = eventsByDate.get(day.toDateString()) || [];
+                        const isToday = day.toDateString() === new Date().toDateString();
+                        
+                        return (
+                            <div 
+                                key={dayIndex} 
+                                className={`relative border-r border-brand-border ${isToday ? 'bg-brand-accent/5' : ''}`}
+                                onClick={() => onDayClick(day)}
+                            >
+                                {hours.map((_, i) => (
+                                    <div key={i} className="h-[60px] border-b border-brand-border hover:bg-brand-input/50 active:bg-brand-input cursor-pointer transition-colors"></div>
+                                ))}
+                                
+                                <div className="absolute inset-0 pointer-events-none">
+                                    {events.map(event => {
+                                        const { top, height } = getEventPosition(event);
+                                        const bgColor = getEventColor(event, profile);
+                                        
+                                        return (
+                                            <div
+                                                key={event.id}
+                                                onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
+                                                className="absolute left-0.5 right-0.5 sm:left-1 sm:right-1 rounded-md p-0.5 sm:p-1 cursor-pointer pointer-events-auto overflow-hidden text-white hover:opacity-90 active:scale-95 transition-all"
+                                                style={{
+                                                    top: `${top}px`,
+                                                    height: `${height}px`,
+                                                    backgroundColor: bgColor
+                                                }}
+                                            >
+                                                <div className="text-[9px] sm:text-xs font-semibold truncate">{event.projectName}</div>
+                                                <div className="text-[8px] sm:text-[10px] truncate">{event.startTime}</div>
+                                                {event.location && height > 40 && <div className="text-[8px] sm:text-[10px] truncate opacity-90 hidden sm:block">{event.location}</div>}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
+interface DayViewProps {
+    currentDate: Date;
+    eventsByDate: Map<string, Project[]>;
+    profile: Profile;
+    onEventClick: (event: Project) => void;
+}
+
+const DayView: React.FC<DayViewProps> = ({ currentDate, eventsByDate, profile, onEventClick }) => {
+    const events = eventsByDate.get(currentDate.toDateString()) || [];
+    const isToday = currentDate.toDateString() === new Date().toDateString();
+
+    const getEventPosition = (event: Project) => {
+        if (!event.startTime) return { top: 0, height: 60 };
+        const [hours, minutes] = event.startTime.split(':').map(Number);
+        const startMinutes = hours * 60 + minutes;
+        
+        let endMinutes = startMinutes + 60;
+        if (event.endTime) {
+            const [endHours, endMins] = event.endTime.split(':').map(Number);
+            endMinutes = endHours * 60 + endMins;
+        }
+        
+        const duration = endMinutes - startMinutes;
+        return {
+            top: (startMinutes / 60) * 60,
+            height: Math.max((duration / 60) * 60, 30)
+        };
+    };
+
+    return (
+        <div className="flex flex-col h-full overflow-hidden">
+            {/* Day header */}
+            <div className="border-b border-brand-border bg-brand-bg p-3 sm:p-4 sticky top-0 z-10">
+                <div className="text-center">
+                    <div className="text-xs sm:text-sm text-brand-text-secondary">{weekdaysFull[currentDate.getDay()]}</div>
+                    <div className={`text-2xl sm:text-3xl font-bold mt-1 ${isToday ? 'text-brand-accent' : 'text-brand-text-light'}`}>
+                        {currentDate.getDate()}
+                    </div>
+                    <div className="text-xs sm:text-sm text-brand-text-secondary mt-1">
+                        {currentDate.toLocaleDateString('id-ID', { month: 'long', year: 'numeric' })}
+                    </div>
+                </div>
+            </div>
+
+            {/* Time grid */}
+            <div className="flex-1 overflow-y-auto">
+                <div className="flex relative" style={{ minHeight: '1440px' }}>
+                    <div className="w-12 sm:w-20 border-r border-brand-border flex-shrink-0">
+                        {hours.map((hour) => (
+                            <div key={hour} className="h-[60px] border-b border-brand-border px-1 sm:px-2 py-1 text-[10px] sm:text-xs text-brand-text-secondary text-right">
+                                {hour}
+                            </div>
+                        ))}
+                    </div>
+
+                    <div className="flex-1 relative">
+                        {hours.map((_, i) => (
+                            <div key={i} className="h-[60px] border-b border-brand-border hover:bg-brand-input/50 active:bg-brand-input transition-colors"></div>
+                        ))}
+                        
+                        <div className="absolute inset-0">
+                            {events.map(event => {
+                                const { top, height } = getEventPosition(event);
+                                const bgColor = getEventColor(event, profile);
+                                
+                                return (
+                                    <div
+                                        key={event.id}
+                                        onClick={() => onEventClick(event)}
+                                        className="absolute left-1 right-1 sm:left-2 sm:right-2 rounded-lg p-2 sm:p-3 cursor-pointer text-white hover:opacity-90 active:scale-[0.98] transition-all shadow-md"
+                                        style={{
+                                            top: `${top}px`,
+                                            height: `${height}px`,
+                                            backgroundColor: bgColor
+                                        }}
+                                    >
+                                        <div className="font-semibold text-xs sm:text-sm mb-0.5 sm:mb-1 truncate">{event.projectName}</div>
+                                        <div className="text-[10px] sm:text-xs opacity-90">{event.startTime} - {event.endTime || ''}</div>
+                                        {event.location && height > 50 && (
+                                            <div className="text-[10px] sm:text-xs opacity-90 mt-1 flex items-center gap-1 truncate">
+                                                <MapPinIcon className="w-3 h-3 flex-shrink-0" />
+                                                <span className="truncate">{event.location}</span>
+                                            </div>
+                                        )}
+                                        {event.notes && height > 90 && (
+                                            <div className="text-[10px] sm:text-xs opacity-75 mt-2 line-clamp-2">{event.notes}</div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 
 interface EventPanelProps {
@@ -252,7 +529,7 @@ interface CalendarViewProps {
 export const CalendarView: React.FC<CalendarViewProps> = ({ projects, setProjects, teamMembers, profile }) => {
     // STATE
     const [currentDate, setCurrentDate] = useState(new Date());
-    const [viewMode, setViewMode] = useState<'Month' | 'Agenda'>('Month');
+    const [viewMode, setViewMode] = useState<'Day' | 'Week' | 'Month' | 'Agenda'>('Month');
     const [isPanelOpen, setIsPanelOpen] = useState(false);
     const [selectedEvent, setSelectedEvent] = useState<Project | null>(null);
     const [panelMode, setPanelMode] = useState<'detail' | 'edit'>('detail');
@@ -537,14 +814,53 @@ export const CalendarView: React.FC<CalendarViewProps> = ({ projects, setProject
                     <CalendarHeader
                         currentDate={currentDate}
                         viewMode={viewMode}
-                        onPrev={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1))}
-                        onNext={() => setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1))}
+                        onPrev={() => {
+                            if (viewMode === 'Day') {
+                                const newDate = new Date(currentDate);
+                                newDate.setDate(currentDate.getDate() - 1);
+                                setCurrentDate(newDate);
+                            } else if (viewMode === 'Week') {
+                                const newDate = new Date(currentDate);
+                                newDate.setDate(currentDate.getDate() - 7);
+                                setCurrentDate(newDate);
+                            } else {
+                                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
+                            }
+                        }}
+                        onNext={() => {
+                            if (viewMode === 'Day') {
+                                const newDate = new Date(currentDate);
+                                newDate.setDate(currentDate.getDate() + 1);
+                                setCurrentDate(newDate);
+                            } else if (viewMode === 'Week') {
+                                const newDate = new Date(currentDate);
+                                newDate.setDate(currentDate.getDate() + 7);
+                                setCurrentDate(newDate);
+                            } else {
+                                setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+                            }
+                        }}
                         onToday={() => setCurrentDate(new Date())}
                         onViewModeChange={setViewMode}
                         onInfoClick={() => setIsInfoModalOpen(true)}
                     />
                     <div className="flex-1 calendar-grid-container">
-                        {viewMode === 'Month' ? (
+                        {viewMode === 'Day' ? (
+                            <DayView
+                                currentDate={currentDate}
+                                eventsByDate={eventsByDate}
+                                profile={profile}
+                                onEventClick={handleOpenPanelForEdit}
+                            />
+                        ) : viewMode === 'Week' ? (
+                            <WeekView
+                                currentDate={currentDate}
+                                eventsByDate={eventsByDate}
+                                profile={profile}
+                                onDayClick={handleOpenPanelForAdd}
+                                onEventClick={handleOpenPanelForEdit}
+                            />
+                        ) : viewMode === 'Month' ? (
                             <MonthView
                                 currentDate={currentDate}
                                 daysInMonth={daysInMonthGrid}

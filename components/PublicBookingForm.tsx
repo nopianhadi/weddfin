@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { REGIONS } from '../types';
 import { Client, Project, Package, AddOn, Transaction, Profile, Card, FinancialPocket, ClientStatus, PaymentStatus, TransactionType, PromoCode, Lead, LeadStatus, ContactChannel, ClientType, PublicBookingFormProps, BookingStatus, ViewType } from '../types';
 import Modal from './Modal';
 import { MessageSquareIcon } from '../constants';
@@ -11,6 +12,7 @@ import { createTransaction, updateCardBalance } from '../services/transactions';
 const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(amount);
 }
+const titleCase = (s: string) => s.replace(/\b\w/g, c => c.toUpperCase());
 
 const initialFormState = {
     clientName: '',
@@ -26,10 +28,12 @@ const initialFormState = {
     dp: '',
     dpPaymentRef: '', // Client adds this for reference
     transportCost: '',
+    durationSelection: '' as string,
+    unitPrice: undefined as number | undefined,
 };
 
 const UploadIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
         <polyline points="17 8 12 3 7 8" />
         <line x1="12" y1="3" x2="12" y2="15" />
@@ -56,8 +60,80 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
     const [isContractModalOpen, setIsContractModalOpen] = useState(false);
     const formRef = useRef<HTMLDivElement>(null);
     const [leadId, setLeadId] = useState<string | null>(null);
+    const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
+    const [isLeadDataLoaded, setIsLeadDataLoaded] = useState(false);
+    
+    // CSRF Protection: Honeypot field (invisible to humans, visible to bots)
+    const [honeypot, setHoneypot] = useState('');
+    
+    // Rate limiting: Prevent rapid submissions
+    const [lastSubmitTime, setLastSubmitTime] = useState(0);
+    const SUBMIT_COOLDOWN = 5000; // 5 seconds
 
+    // Regions discovery for landing gate (must be outside conditional to respect hooks rules)
+    const existingRegions = useMemo(() => {
+        const set = new Set<string>();
+        for (const p of packages) {
+            if (p.region && String(p.region).trim() !== '') set.add(String(p.region));
+        }
+        return Array.from(set).sort((a,b) => a.localeCompare(b));
+    }, [packages]);
+    const unionRegions = useMemo(() => {
+        const baseVals = REGIONS.map(r => r.value);
+        const extra = existingRegions.filter(er => !baseVals.includes(er));
+        return [
+            ...REGIONS.map(r => ({ value: r.value, label: r.label })),
+            ...extra.map(er => ({ value: er, label: titleCase(er) })),
+        ];
+    }, [existingRegions]);
+
+    // Filter Packages by selectedRegion (strict)
+    const filteredPackages = useMemo(() => {
+        if (!selectedRegion) {
+            if (import.meta.env.DEV) {
+                console.log('No region selected, returning empty packages');
+            }
+            return [] as Package[];
+        }
+        const filtered = packages.filter(p => {
+            const pkgRegion = p.region ? String(p.region).toLowerCase() : '';
+            return pkgRegion === selectedRegion.toLowerCase();
+        });
+        if (import.meta.env.DEV) {
+            console.log(`Filtered ${filtered.length} packages for region:`, selectedRegion);
+        }
+        return filtered;
+    }, [packages, selectedRegion]);
+
+    // Filter Add-Ons by selectedRegion (strict)
+    const filteredAddOns = useMemo(() => {
+        if (!selectedRegion) return [] as AddOn[];
+        return addOns.filter(a => {
+            const addonRegion = a.region ? String(a.region).toLowerCase() : '';
+            return addonRegion === selectedRegion.toLowerCase();
+        });
+    }, [addOns, selectedRegion]);
+
+    // Parse region from URL only once on mount
     useEffect(() => {
+        const hash = window.location.hash;
+        if (hash.includes('?')) {
+            const urlParams = new URLSearchParams(hash.substring(hash.indexOf('?')));
+            const regionParam = urlParams.get('region');
+            if (regionParam) {
+                const normalizedRegion = regionParam.toLowerCase();
+                setSelectedRegion(normalizedRegion);
+                if (import.meta.env.DEV) {
+                    console.log('Region selected from URL:', normalizedRegion);
+                }
+            }
+        }
+    }, []);
+
+    // Handle lead ID separately when leads data is available (only once)
+    useEffect(() => {
+        if (isLeadDataLoaded || leads.length === 0) return;
+        
         const hash = window.location.hash;
         if (hash.includes('?')) {
             const urlParams = new URLSearchParams(hash.substring(hash.indexOf('?')));
@@ -72,10 +148,11 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                         phone: lead.whatsapp || '',
                         location: lead.location,
                     }));
+                    setIsLeadDataLoaded(true);
                 }
             }
         }
-    }, [leads]);
+    }, [leads, isLeadDataLoaded]);
 
     const template = userProfile.publicPageConfig?.template || 'classic';
 
@@ -96,9 +173,14 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
 
 
     const { totalBeforeDiscount, discountAmount, totalProject, discountText } = useMemo(() => {
-        const selectedPackage = packages.find(p => p.id === formData.packageId);
-        const packagePrice = selectedPackage?.price || 0;
-        const addOnsPrice = addOns
+        const selectedPackage = filteredPackages.find(p => p.id === formData.packageId);
+        let packagePrice = selectedPackage?.price || 0;
+        const opts = selectedPackage?.durationOptions;
+        if (opts && opts.length > 0) {
+            const selected = opts.find(o => o.label === formData.durationSelection) || opts.find(o => o.default) || opts[0];
+            packagePrice = selected?.price ?? (selectedPackage?.price || 0);
+        }
+        const addOnsPrice = filteredAddOns
             .filter(addon => formData.selectedAddOnIds.includes(addon.id))
             .reduce((sum, addon) => sum + addon.price, 0);
         
@@ -135,7 +217,7 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
         
         const totalProject = totalBeforeDiscount - discountAmount + transportFee;
         return { totalBeforeDiscount, discountAmount, totalProject, discountText };
-    }, [formData.packageId, formData.selectedAddOnIds, formData.promoCode, formData.transportCost, packages, addOns, promoCodes]);
+    }, [formData.packageId, formData.selectedAddOnIds, formData.promoCode, formData.transportCost, formData.durationSelection, filteredPackages, filteredAddOns, promoCodes]);
 
     const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value, type } = e.target;
@@ -143,6 +225,42 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
             const { id, checked } = e.target as HTMLInputElement;
             setFormData(prev => ({ ...prev, selectedAddOnIds: checked ? [...prev.selectedAddOnIds, id] : prev.selectedAddOnIds.filter(addOnId => addOnId !== id) }));
         } else {
+            // If packageId changed, set unitPrice from package price or first duration option
+            if (name === 'packageId') {
+                const pkg = filteredPackages.find(p => p.id === value);
+                if (pkg) {
+                    const opts = pkg.durationOptions;
+                    if (opts && opts.length > 0) {
+                        const defaultOpt = opts.find(o => o.default) || opts[0];
+                        setFormData(prev => ({ 
+                            ...prev, 
+                            packageId: value, 
+                            durationSelection: defaultOpt.label,
+                            unitPrice: Number(defaultOpt.price) 
+                        }));
+                        return;
+                    } else {
+                        setFormData(prev => ({ 
+                            ...prev, 
+                            packageId: value, 
+                            unitPrice: Number(pkg.price) 
+                        }));
+                        return;
+                    }
+                }
+            }
+            // If durationSelection changed, compute unitPrice from selected package's durationOptions
+            if (name === 'durationSelection') {
+                const pkg = filteredPackages.find(p => p.id === formData.packageId);
+                const opts = pkg?.durationOptions;
+                if (opts && opts.length > 0) {
+                    const opt = opts.find(o => o.label === value) || opts.find(o => o.default) || opts[0];
+                    if (opt) {
+                        setFormData(prev => ({ ...prev, durationSelection: value, unitPrice: Number(opt.price) }));
+                        return;
+                    }
+                }
+            }
             setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
@@ -161,10 +279,26 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
     
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        
+        // CSRF Protection: Check honeypot
+        if (honeypot !== '') {
+            console.warn('[Security] Bot detected - honeypot triggered');
+            return; // Silent fail for bots
+        }
+        
+        // Rate limiting: Check cooldown
+        const now = Date.now();
+        if (now - lastSubmitTime < SUBMIT_COOLDOWN) {
+            showNotification('Mohon tunggu beberapa detik sebelum mengirim lagi');
+            return;
+        }
+        
+        setLastSubmitTime(now);
         setIsSubmitting(true);
+        try {
         
         const dpAmount = Number(formData.dp) || 0;
-        const selectedPackage = packages.find(p => p.id === formData.packageId);
+        const selectedPackage = filteredPackages.find(p => p.id === formData.packageId);
         if (!selectedPackage) {
             alert('Silakan pilih paket.');
             setIsSubmitting(false);
@@ -228,7 +362,9 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
             totalCost: totalProject,
             amountPaid: dpAmount,
             paymentStatus: dpAmount > 0 ? (remainingPayment <= 0 ? PaymentStatus.LUNAS : PaymentStatus.DP_TERBAYAR) : PaymentStatus.BELUM_BAYAR,
-            notes: `Referensi Pembayaran DP: ${formData.dpPaymentRef}`,
+            notes: `Referensi Pembayaran DP: ${formData.dpPaymentRef}${formData.durationSelection ? ` | Durasi dipilih: ${formData.durationSelection}` : ''}`,
+            durationSelection: formData.durationSelection || undefined,
+            unitPrice: formData.unitPrice !== undefined ? Number(formData.unitPrice) : undefined,
             promoCodeId: promoCodeAppliedId,
             discountAmount: discountAmount > 0 ? discountAmount : undefined,
             transportCost: transportFee > 0 ? transportFee : undefined,
@@ -241,7 +377,9 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
             try {
                 const updatedLead = await updateLeadRow(leadId, { status: LeadStatus.CONVERTED, notes: `Dikonversi dari formulir booking. Klien ID: ${createdClient.id}` });
                 setLeads(prev => prev.map(l => l.id === leadId ? updatedLead : l));
-            } catch {}
+            } catch (error) {
+                console.error('[Lead] Failed to update lead status:', error);
+            }
         } else {
             try {
                 const createdLead = await createLeadRow({
@@ -254,7 +392,9 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                     whatsapp: createdClient.phone,
                 } as any);
                 setLeads(prev => [createdLead, ...prev]);
-            } catch {}
+            } catch (error) {
+                console.error('[Lead] Failed to create lead:', error);
+            }
         }
 
         setClients(prev => [createdClient, ...prev]);
@@ -280,7 +420,11 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                     cardId: destinationCard.id,
                 } as any);
                 setTransactions(prev => [createdTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
-                try { await updateCardBalance(destinationCard.id, dpAmount); } catch {}
+                try { 
+                    await updateCardBalance(destinationCard.id, dpAmount); 
+                } catch (error) {
+                    console.error('[CardBalance] Failed to update DP balance:', error);
+                }
                 setCards(prev => prev.map(c => c.id === destinationCard.id ? { ...c, balance: c.balance + dpAmount } : c));
             } catch (err) {
                 console.error('Gagal mencatat transaksi DP ke Supabase:', err);
@@ -301,6 +445,31 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
             }
         }
 
+        // Record transport transaction if transport fee > 0
+        if (transportFee > 0) {
+            const today = new Date().toISOString().split('T')[0];
+            try {
+                const transportTx = await createTransaction({
+                    date: today,
+                    description: `Biaya Transport - ${createdProject.projectName}`,
+                    amount: transportFee,
+                    type: TransactionType.EXPENSE,
+                    projectId: createdProject.id,
+                    category: 'Transportasi',
+                    method: 'Sistem',
+                    cardId: destinationCard.id, // Use same card as DP for consistency
+                } as any);
+                setTransactions(prev => [transportTx, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()));
+                
+                // Optionally deduct from card balance (if you want to track it as expense)
+                // try { await updateCardBalance(destinationCard.id, -transportFee); } catch {}
+                // setCards(prev => prev.map(c => c.id === destinationCard.id ? { ...c, balance: c.balance - transportFee } : c));
+            } catch (err) {
+                console.error('Gagal mencatat transaksi transport ke Supabase:', err);
+                // Non-fatal, continue with booking
+            }
+        }
+
         setIsSubmitting(false);
         setIsSubmitted(true);
         
@@ -310,6 +479,11 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
             icon: 'lead',
             link: { view: ViewType.BOOKING }
         });
+        } catch (err: any) {
+            console.error('Error submitting public booking form:', err);
+            showNotification && showNotification(typeof err === 'string' ? err : (err?.message || 'Terjadi kesalahan saat mengirim formulir. Silakan coba lagi.'));
+            setIsSubmitting(false);
+        }
     };
     
     const renderSampleContract = () => {
@@ -318,7 +492,7 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
         });
 
         return (
-            <div className="printable-content bg-white text-black p-8 font-serif leading-relaxed text-sm max-h-[70vh] overflow-y-auto">
+            <div className="printable-content bg-white text-black p-8 leading-relaxed text-sm max-h-[70vh] overflow-y-auto">
                 <h2 className="text-xl font-bold text-center mb-1">CONTOH SURAT PERJANJIAN KERJA SAMA</h2>
                 <h3 className="text-lg font-bold text-center mb-6">JASA FOTOGRAFI & VIDEOGRAFI</h3>
                 <p>Pada hari ini, {today}, telah dibuat dan disepakati perjanjian kerja sama antara:</p>
@@ -382,10 +556,27 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
 
     if (isSubmitted) {
         return (
-             <div className="flex items-center justify-center min-h-screen p-4">
-                <div className="w-full max-w-lg p-8 text-center bg-public-surface rounded-2xl shadow-lg border border-public-border">
-                    <h1 className="text-2xl font-bold text-gradient">Terima Kasih!</h1>
-                    <p className="mt-4 text-public-text-primary">Formulir pemesanan Anda telah berhasil kami terima. Tim kami akan segera menghubungi Anda untuk konfirmasi lebih lanjut.</p>
+             <div className="flex items-center justify-center min-h-screen p-3 md:p-4">
+                <div className="w-full max-w-2xl p-6 md:p-8 text-center bg-public-surface rounded-2xl shadow-lg border border-public-border">
+                    <h1 className="text-xl md:text-2xl font-bold text-gradient">Terima Kasih!</h1>
+                    <p className="mt-4 text-sm md:text-base text-public-text-primary">Formulir pemesanan Anda telah berhasil kami terima. Tim kami akan segera menghubungi Anda untuk konfirmasi lebih lanjut.</p>
+                </div>
+            </div>
+        );
+    }
+    // Region gate: do not show all regions. Ask user to choose a region link first.
+    if (!selectedRegion) {
+        const base = `${window.location.origin}${window.location.pathname}#/public-booking`;
+        return (
+            <div className="flex items-center justify-center min-h-screen p-3 md:p-4">
+                <div className="w-full max-w-lg p-6 md:p-8 text-center bg-public-surface rounded-2xl shadow-lg border border-public-border">
+                    <h1 className="text-xl md:text-2xl font-bold text-gradient">Pilih Wilayah</h1>
+                    <p className="mt-3 text-public-text-secondary text-xs md:text-sm">Untuk meminimalisir kesalahan, silakan pilih wilayah terlebih dahulu.</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-5">
+                        {unionRegions.map(r => (
+                            <a key={r.value} className="button-primary text-center" href={`${base}?region=${r.value}`}>{r.label}</a>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -394,12 +585,12 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
     const suggestedDp = totalProject * 0.3;
 
     return (
-        <div className={`template-wrapper template-${template} min-h-screen p-4 sm:p-6 lg:p-8 flex items-center justify-center`}>
+        <div className={`public-page-body template-wrapper template-${template} min-h-screen p-3 md:p-4 sm:p-6 lg:p-8 flex items-center justify-center`}>
             <style>{`
                 .template-wrapper { background-color: var(--public-bg); color: var(--public-text-primary); }
-                .template-classic .form-container { max-width: 48rem; width: 100%; margin: auto; }
-                .template-modern .form-container { max-width: 64rem; width: 100%; margin: auto; display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start; }
-                .template-gallery .form-container { max-width: 42rem; width: 100%; margin: auto; font-family: serif; }
+                .template-classic .form-container { max-width: 64rem; width: 100%; margin: auto; }
+                .template-modern .form-container { max-width: 72rem; width: 100%; margin: auto; display: grid; grid-template-columns: 1fr 2fr; gap: 2rem; align-items: start; }
+                .template-gallery .form-container { max-width: 56rem; width: 100%; margin: auto; }
                 @media (max-width: 768px) { .template-modern .form-container { grid-template-columns: 1fr; } }
             `}</style>
             <div ref={formRef} className="form-container">
@@ -409,44 +600,153 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                         <p className="text-public-text-secondary text-sm mt-4">{userProfile.bio}</p>
                     </div>
                 )}
-                 <div className="bg-public-surface p-4 sm:p-6 md:p-8 rounded-2xl shadow-lg border border-public-border">
-                    <div className="text-center mb-8">
-                        <h1 className="text-3xl font-bold text-gradient">{userProfile.companyName}</h1>
-                        <p className="text-sm text-public-text-secondary mt-2">Formulir Pemesanan Layanan</p>
+                 <div className="bg-public-surface p-3 md:p-4 sm:p-6 md:p-8 rounded-2xl shadow-lg border border-public-border">
+                    <div className="text-center mb-6 md:mb-8">
+                        <h1 className="text-2xl md:text-3xl font-bold text-gradient">{userProfile.companyName}</h1>
+                        <p className="text-xs md:text-sm text-public-text-secondary mt-2">Formulir Pemesanan Layanan</p>
                     </div>
 
-                    <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-8 gap-y-2">
-                             <div className="space-y-4">
-                                <h4 className="text-base font-semibold text-gradient border-b border-public-border pb-2">Informasi Klien & Acara</h4>
-                                <div className="input-group"><input type="text" id="clientName" name="clientName" value={formData.clientName} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="clientName" className="input-label">Nama Lengkap</label></div>
-                                <div className="input-group"><input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="phone" className="input-label">Nomor Telepon (WhatsApp)</label></div>
-                                <div className="input-group"><input type="email" id="email" name="email" value={formData.email} onChange={handleFormChange} className="input-field" placeholder=" " required/><label htmlFor="email" className="input-label">Email</label></div>
-                                <div className="input-group"><input type="text" id="instagram" name="instagram" value={formData.instagram} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="instagram" className="input-label">Instagram</label></div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div className="input-group"><select id="projectType" name="projectType" value={formData.projectType} onChange={handleFormChange} className="input-field" required><option value="" disabled>Pilih Jenis...</option>{userProfile.projectTypes.map(pt => <option key={pt} value={pt}>{pt}</option>)}</select><label htmlFor="projectType" className="input-label">Jenis Acara</label></div>
-                                    <div className="input-group"><input type="date" id="date" name="date" value={formData.date} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="date" className="input-label">Tanggal Acara</label></div>
+                    <form className="space-y-5" onSubmit={handleSubmit}>
+                        {/* Honeypot field - invisible to humans, visible to bots */}
+                        <input
+                            type="text"
+                            name="website"
+                            value={honeypot}
+                            onChange={(e) => setHoneypot(e.target.value)}
+                            style={{ position: 'absolute', left: '-9999px', width: '1px', height: '1px' }}
+                            tabIndex={-1}
+                            autoComplete="off"
+                            aria-hidden="true"
+                        />
+                        
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 md:gap-x-8 gap-y-2">
+                             <div className="space-y-5">
+                                <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-public-border pb-2">Informasi Klien & Acara</h4>
+                                <div className="space-y-2">
+                                    <label htmlFor="clientName" className="block text-xs text-public-text-secondary">Nama Lengkap</label>
+                                    <input type="text" id="clientName" name="clientName" value={formData.clientName} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="Masukkan nama lengkap" required/>
+                                    <p className="text-xs text-public-text-secondary">Nama lengkap Anda atau pasangan</p>
                                 </div>
-                                <div className="input-group"><input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="location" className="input-label">Alamat Acara</label></div>
+                                <div className="space-y-2">
+                                    <label htmlFor="phone" className="block text-xs text-public-text-secondary">Nomor Telepon (WhatsApp)</label>
+                                    <input type="tel" id="phone" name="phone" value={formData.phone} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="08123456789" required/>
+                                    <p className="text-xs text-public-text-secondary">Nomor aktif yang bisa dihubungi</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="email" className="block text-xs text-public-text-secondary">Email</label>
+                                    <input type="email" id="email" name="email" value={formData.email} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="email@example.com" required/>
+                                    <p className="text-xs text-public-text-secondary">Email untuk konfirmasi dan komunikasi</p>
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="instagram" className="block text-xs text-public-text-secondary">Instagram (Opsional)</label>
+                                    <input type="text" id="instagram" name="instagram" value={formData.instagram} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="@username"/>
+                                    <p className="text-xs text-public-text-secondary">Username Instagram Anda</p>
+                                </div>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label htmlFor="projectType" className="block text-xs text-public-text-secondary">Jenis Acara</label>
+                                        <select id="projectType" name="projectType" value={formData.projectType} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" required>
+                                            <option value="" disabled>Pilih Jenis...</option>
+                                            {userProfile.projectTypes.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                                        </select>
+                                        <p className="text-xs text-public-text-secondary">Pilih jenis acara</p>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label htmlFor="date" className="block text-xs text-public-text-secondary">Tanggal Acara</label>
+                                        <input type="date" id="date" name="date" value={formData.date} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all"/>
+                                        <p className="text-xs text-public-text-secondary">Kapan acara berlangsung?</p>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="location" className="block text-xs text-public-text-secondary">Alamat Acara</label>
+                                    <input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="Alamat lengkap atau venue"/>
+                                    <p className="text-xs text-public-text-secondary">Alamat lengkap atau venue tempat acara</p>
+                                </div>
                              </div>
 
-                             <div className="space-y-4">
-                                <h4 className="text-base font-semibold text-gradient border-b border-public-border pb-2">Detail Paket & Pembayaran</h4>
-                                <div className="input-group"><select id="packageId" name="packageId" value={formData.packageId} onChange={handleFormChange} className="input-field" required><option value="">Pilih paket...</option>{packages.map(p => <option key={p.id} value={p.id}>{p.name} - {formatCurrency(p.price)}</option>)}</select><label htmlFor="packageId" className="input-label">Paket</label></div>
-                                <div className="input-group"><label className="input-label !static !-top-4 text-public-accent">Add-On Lainnya (Opsional)</label><div className="p-3 border border-public-border bg-public-bg rounded-lg max-h-32 overflow-y-auto space-y-2 mt-2">{addOns.map(addon => (<label key={addon.id} className="flex items-center justify-between p-2 rounded-md hover:bg-public-surface cursor-pointer"><span className="text-sm text-public-text-primary">{addon.name}</span><div className="flex items-center gap-4"><span className="text-sm text-public-text-secondary">{formatCurrency(addon.price)}</span><input type="checkbox" id={addon.id} name="addOns" checked={formData.selectedAddOnIds.includes(addon.id)} onChange={handleFormChange} /></div></label>))}</div></div>
-                                
-                                <div className="input-group">
-                                    <input type="text" id="promoCode" name="promoCode" value={formData.promoCode} onChange={handleFormChange} className="input-field" placeholder=" " />
-                                    <label htmlFor="promoCode" className="input-label">Kode Promo (Opsional)</label>
-                                    {promoFeedback.message && <p className={`text-xs mt-1 ${promoFeedback.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>{promoFeedback.message}</p>}
+                             <div className="space-y-5">
+                                <h4 className="text-sm md:text-base font-semibold text-gradient border-b border-public-border pb-2">Detail Paket & Pembayaran</h4>
+                                <div className="space-y-2">
+                                    <label htmlFor="packageId" className="block text-xs text-public-text-secondary">Paket</label>
+                                    <select
+                                        id="packageId"
+                                        name="packageId"
+                                        value={formData.packageId}
+                                        onChange={(e) => {
+                                                const val = e.target.value;
+                                                const pkg = filteredPackages.find(p => p.id === val);
+                                                const defaultOpt = pkg?.durationOptions && pkg.durationOptions.length > 0 ? (pkg.durationOptions.find(o => o.default) || pkg.durationOptions[0]) : undefined;
+                                                setFormData(prev => ({ ...prev, packageId: val, durationSelection: defaultOpt?.label || '', unitPrice: defaultOpt ? Number(defaultOpt.price) : (pkg ? pkg.price : undefined) }));
+                                            }}
+                                        className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all"
+                                        required
+                                    >
+                                        <option value="">{filteredPackages.length === 0 ? 'Tidak ada paket tersedia untuk wilayah ini' : 'Pilih paket...'}</option>
+                                        {(() => {
+                                            // Use filteredPackages which are already filtered by selectedRegion
+                                            const grouped: Record<string, typeof filteredPackages> = {} as any;
+                                            for (const p of filteredPackages) {
+                                                const cat = p.category || 'Lainnya';
+                                                if (!grouped[cat]) grouped[cat] = [] as any;
+                                                grouped[cat].push(p);
+                                            }
+                                            return Object.entries(grouped).sort(([a],[b]) => a.localeCompare(b)).map(([cat, list]) => (
+                                                <optgroup key={cat} label={cat}>
+                                                    {(list as typeof filteredPackages).map(p => (
+                                                        <option key={p.id} value={p.id}>
+                                                            {p.name}
+                                                        </option>
+                                                    ))}
+                                                </optgroup>
+                                            ));
+                                        })()}
+                                    </select>
+                                    <p className="text-xs text-public-text-secondary">Pilih paket layanan yang sesuai dengan kebutuhan Anda</p>
                                 </div>
-                                <div className="input-group">
-                                    <input type="number" id="transportCost" name="transportCost" value={formData.transportCost} onChange={handleFormChange} className="input-field" placeholder=" " />
-                                    <label htmlFor="transportCost" className="input-label">Fee Transport (Opsional)</label>
+                                {(() => { const pkg = filteredPackages.find(p => p.id === formData.packageId); if (!pkg?.durationOptions || pkg.durationOptions.length === 0) return null; return (
+                                    <div className="mt-2">
+                                        <label className="text-xs font-semibold text-blue-600">Jam Kerja</label>
+                                        <p className="text-xs text-public-text-secondary mt-1 mb-2">Pilih durasi jam kerja sesuai kebutuhan acara Anda</p>
+                                        <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                            {pkg.durationOptions.map(opt => (
+                                                <label key={opt.label} className={`flex items-center justify-between p-3 rounded-xl border-2 cursor-pointer transition-all ${
+                                                    formData.durationSelection === opt.label 
+                                                    ? 'border-blue-500 bg-blue-50/10 shadow-md' 
+                                                    : 'border-public-border hover:border-blue-300 hover:bg-blue-50/5'
+                                                }`}>
+                                                    <span className="text-sm font-medium">{opt.label}</span>
+                                                    <div className="flex items-center gap-3">
+                                                        <span className="text-sm font-semibold text-blue-600">{formatCurrency(opt.price)}</span>
+                                                        <input type="radio" name="durationSelection" value={opt.label} checked={formData.durationSelection === opt.label} onChange={handleFormChange} className="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                                                    </div>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    </div>
+                                ); })()}
+                                <div className="space-y-2">
+                                    <label className="block text-xs font-semibold text-blue-600">Add-On Lainnya (Opsional)</label>
+                                    <p className="text-xs text-public-text-secondary">Pilih layanan tambahan yang Anda butuhkan</p>
+                                    <div className="p-3 border-2 border-blue-200 bg-blue-50/5 rounded-xl max-h-32 overflow-y-auto space-y-2 mt-2">{filteredAddOns.length > 0 ? filteredAddOns.map(addon => (<label key={addon.id} className={`flex items-center justify-between p-2.5 rounded-lg cursor-pointer transition-all ${
+                                        formData.selectedAddOnIds.includes(addon.id) 
+                                        ? 'bg-blue-100/20 border border-blue-400' 
+                                        : 'hover:bg-blue-50/10 border border-transparent'
+                                    }`}><span className="text-sm text-public-text-primary font-medium">{addon.name}</span><div className="flex items-center gap-4"><span className="text-sm font-semibold text-blue-600">{formatCurrency(addon.price)}</span><input type="checkbox" id={addon.id} name="addOns" checked={formData.selectedAddOnIds.includes(addon.id)} onChange={handleFormChange} className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 rounded focus:ring-blue-500 flex-shrink-0" /></div></label>)) : <p className="text-xs text-public-text-secondary">Tidak ada add-on untuk wilayah ini.</p>}</div></div>
+                                
+                                <div className="space-y-2">
+                                    <label htmlFor="promoCode" className="block text-xs text-public-text-secondary">Kode Promo (Opsional)</label>
+                                    <input type="text" id="promoCode" name="promoCode" value={formData.promoCode} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="Masukkan kode promo" />
+                                    {!promoFeedback.message && <p className="text-xs text-public-text-secondary">Masukkan kode promo jika Anda memilikinya</p>}
+                                    {promoFeedback.message && <p className={`text-xs ${promoFeedback.type === 'success' ? 'text-green-500' : 'text-red-500'}`}>{promoFeedback.message}</p>}
+                                </div>
+                                <div className="space-y-2">
+                                    <label htmlFor="transportCost" className="block text-xs text-public-text-secondary">Fee Transport (Opsional)</label>
+                                    <input type="number" id="transportCost" name="transportCost" value={formData.transportCost} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="0" />
+                                    <p className="text-xs text-public-text-secondary">Biaya transportasi jika lokasi acara di luar kota</p>
                                 </div>
 
-                                <div className="p-4 bg-public-bg rounded-lg space-y-3">
+                                <div className="p-3 md:p-4 bg-public-bg rounded-lg space-y-2 md:space-y-3">
                                     {discountAmount > 0 && (
                                         <>
                                         <div className="flex justify-between items-center text-sm"><span className="text-public-text-secondary">Subtotal</span><span className="text-public-text-primary">{formatCurrency(totalBeforeDiscount)}</span></div>
@@ -461,31 +761,35 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                                     <p className="text-sm text-public-text-secondary">Silakan transfer Uang Muka (DP) ke rekening berikut:</p>
                                     <p className="font-semibold text-public-text-primary text-center py-2 bg-public-surface rounded-md border border-public-border">{userProfile.bankAccount}</p>
                                     <div className="grid grid-cols-2 gap-4">
-                                        <div className="input-group !mt-2">
-                                            <input type="number" name="dp" id="dp" value={formData.dp} onChange={handleFormChange} className="input-field text-right" placeholder=" "/>
-                                            <label htmlFor="dp" className="input-label">Jumlah DP Ditransfer</label>
-                                            <p className="text-xs text-public-text-secondary mt-1 text-right">Saran DP (30%): {formatCurrency(suggestedDp)}</p>
+                                        <div className="space-y-2">
+                                            <label htmlFor="dp" className="block text-xs text-public-text-secondary">Jumlah DP Ditransfer</label>
+                                            <input type="number" name="dp" id="dp" value={formData.dp} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all text-right" placeholder="0"/>
+                                            <p className="text-xs text-public-text-secondary text-right">Saran DP (30%): {formatCurrency(suggestedDp)}</p>
                                         </div>
-                                        <div className="input-group !mt-2"><input type="text" name="dpPaymentRef" id="dpPaymentRef" value={formData.dpPaymentRef} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="dpPaymentRef" className="input-label">No. Ref / 4 Digit Rek</label></div>
+                                        <div className="space-y-2">
+                                            <label htmlFor="dpPaymentRef" className="block text-xs text-public-text-secondary">No. Ref / 4 Digit Rek</label>
+                                            <input type="text" name="dpPaymentRef" id="dpPaymentRef" value={formData.dpPaymentRef} onChange={handleFormChange} className="w-full px-4 py-3 rounded-xl border border-public-border bg-white/5 text-public-text-primary focus:outline-none focus:ring-2 focus:ring-public-accent focus:border-transparent transition-all" placeholder="1234"/>
+                                            <p className="text-xs text-public-text-secondary">Nomor referensi atau 4 digit terakhir rekening pengirim</p>
+                                        </div>
                                     </div>
-                                     <div className="input-group !mt-2">
-                                        <label htmlFor="dpPaymentProof" className="input-label !static !-top-4 text-public-accent">Bukti Transfer DP (Opsional)</label>
-                                        <div className="mt-2 flex justify-center rounded-lg border border-dashed border-public-border px-6 py-10">
+                                     <div className="space-y-2 !mt-4">
+                                        <label htmlFor="dpPaymentProof" className="block text-xs font-semibold text-blue-600">Bukti Transfer DP (Opsional)</label>
+                                        <div className="mt-2 flex justify-center rounded-xl border-2 border-dashed border-blue-300 bg-blue-50/5 px-6 py-10 hover:border-blue-400 hover:bg-blue-50/10 transition-all">
                                             <div className="text-center">
-                                                <UploadIcon className="mx-auto h-12 w-12 text-public-text-secondary" />
+                                                <UploadIcon className="mx-auto h-12 w-12 text-blue-500" />
                                                 <div className="mt-4 flex text-sm leading-6 text-public-text-secondary">
-                                                    <label htmlFor="dpPaymentProof" className="relative cursor-pointer rounded-md bg-public-surface font-semibold text-public-accent focus-within:outline-none focus-within:ring-2 focus-within:ring-public-accent focus-within:ring-offset-2 focus-within:ring-offset-public-bg hover:text-public-accent-hover">
+                                                    <label htmlFor="dpPaymentProof" className="relative cursor-pointer rounded-md px-2 py-1 font-semibold text-blue-600 hover:text-blue-700 focus-within:outline-none focus-within:ring-2 focus-within:ring-blue-500 focus-within:ring-offset-2">
                                                         <span>Unggah file</span>
                                                         <input id="dpPaymentProof" name="dpPaymentProof" type="file" className="sr-only" onChange={handleFileChange} accept="image/png, image/jpeg, image/jpg, application/pdf" />
                                                     </label>
                                                     <p className="pl-1">atau seret dan lepas</p>
                                                 </div>
-                                                <p className="text-xs leading-5 text-public-text-secondary">PNG, JPG, PDF hingga 10MB</p>
+                                                <p className="text-xs leading-5 text-blue-600/70">PNG, JPG, PDF hingga 10MB</p>
                                             </div>
                                         </div>
                                         {paymentProof && (
-                                            <div className="mt-2 text-sm text-public-text-primary bg-public-bg p-2 rounded-md">
-                                                File terpilih: <span className="font-semibold">{paymentProof.name}</span>
+                                            <div className="mt-2 text-sm text-blue-700 bg-blue-100/20 border border-blue-300 p-3 rounded-lg">
+                                                ✓ File terpilih: <span className="font-semibold">{paymentProof.name}</span>
                                             </div>
                                         )}
                                     </div>
@@ -494,7 +798,7 @@ const PublicBookingForm: React.FC<PublicBookingFormProps> = ({
                         </div>
 
                         <div className="pt-6">
-                            <button type="submit" disabled={isSubmitting} className="w-full button-primary">{isSubmitting ? 'Mengirim...' : 'Kirim Formulir Pemesanan'}</button>
+                            <button type="submit" disabled={isSubmitting} className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl">{isSubmitting ? 'Mengirim...' : 'Kirim Formulir Pemesanan'}</button>
                         </div>
                     </form>
                     <div className="mt-6 flex justify-center items-center gap-4">

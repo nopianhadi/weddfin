@@ -60,8 +60,9 @@ const AddOnItem: React.FC<{ addOn: AddOn }> = ({ addOn }) => {
 };
 
 const initialForm = {
-    clientName: '', email: '', phone: '', instagram: '', date: new Date().toISOString().split('T')[0], location: '', transportCost: '', selectedAddOnIds: [] as string[], promoCode: '', dp: '', dpPaymentRef: ''
+    clientName: '', email: '', phone: '', instagram: '', date: new Date().toISOString().split('T')[0], location: '', transportCost: '', selectedAddOnIds: [] as string[], promoCode: '', dp: '', dpPaymentRef: '', durationSelection: '' as string, unitPrice: undefined as number | undefined
 };
+
 
 
 const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUserProfile, showNotification, setClients, setProjects, setTransactions, setCards, setLeads, addNotification, cards, projects, promoCodes, setPromoCodes }) => {
@@ -70,6 +71,7 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
     const [userProfile, setUserProfile] = useState<Profile>(initialUserProfile);
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [selectedRegion, setSelectedRegion] = useState<string | null>(null);
     
     const { publicPageConfig } = userProfile;
     
@@ -114,6 +116,10 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
         loadData();
     }, []);
     const template = publicPageConfig?.template ?? 'modern';
+    const visiblePackages = useMemo(() => {
+        if (!selectedRegion) return packages;
+        return packages.filter(p => (p.region ? p.region === selectedRegion : false));
+    }, [packages, selectedRegion]);
     
     const [bookingModal, setBookingModal] = useState<{ isOpen: boolean; pkg: Package | null }>({ isOpen: false, pkg: null });
     const [formData, setFormData] = useState(initialForm);
@@ -283,8 +289,13 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
 
     const { totalBeforeDiscount, discountAmount, totalProject, discountText } = useMemo(() => {
         if (!bookingModal.pkg) return { totalBeforeDiscount: 0, discountAmount: 0, totalProject: 0, discountText: '' };
-
-        const packagePrice = bookingModal.pkg.price;
+        // Determine package price based on selected duration option (flexible labels)
+        let packagePrice = bookingModal.pkg.price;
+        const opts = bookingModal.pkg.durationOptions;
+        if (opts && opts.length > 0) {
+            const selected = opts.find(o => o.label === formData.durationSelection) || opts.find(o => o.default) || opts[0];
+            packagePrice = selected?.price ?? bookingModal.pkg.price;
+        }
         const addOnsPrice = addOns
             .filter(addon => formData.selectedAddOnIds.includes(addon.id))
             .reduce((sum, addon) => sum + addon.price, 0);
@@ -322,12 +333,16 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
         
         const totalProject = totalBeforeDiscount - discountAmount + transportFee;
         return { totalBeforeDiscount, discountAmount, totalProject, discountText };
-    }, [formData.selectedAddOnIds, formData.promoCode, formData.transportCost, bookingModal.pkg, addOns, promoCodes]);
+    }, [formData.selectedAddOnIds, formData.promoCode, formData.transportCost, formData.durationSelection, bookingModal.pkg, addOns, promoCodes]);
 
     const handleOpenBookingModal = (pkg: Package) => {
         setBookingModal({ isOpen: true, pkg });
         setIsSubmitted(false);
-        setFormData(initialForm);
+        // Set default duration selection if durationOptions exist
+        const defaultOpt = (pkg.durationOptions && pkg.durationOptions.length > 0)
+            ? (pkg.durationOptions.find(o => o.default) || pkg.durationOptions[0])
+            : undefined;
+        setFormData({ ...initialForm, durationSelection: defaultOpt?.label || '', unitPrice: defaultOpt ? Number(defaultOpt.price) : pkg.price });
         setPaymentProof(null);
         setPromoFeedback({ type: '', message: '' });
     };
@@ -421,7 +436,9 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
             totalCost: totalProject,
             amountPaid: dpAmount,
             paymentStatus: dpAmount >= totalProject ? PaymentStatus.LUNAS : (dpAmount > 0 ? PaymentStatus.DP_TERBAYAR : PaymentStatus.BELUM_BAYAR),
-            notes: `Booking dari halaman paket. Ref: ${formData.dpPaymentRef}`,
+            notes: `Booking dari halaman paket. Ref: ${formData.dpPaymentRef}${formData.durationSelection ? ` | Durasi dipilih: ${formData.durationSelection}` : ''}`,
+            durationSelection: formData.durationSelection || undefined,
+            unitPrice: formData.unitPrice !== undefined ? Number(formData.unitPrice) : undefined,
             promoCodeId: promoCodeAppliedId,
             discountAmount: discountAmount > 0 ? discountAmount : undefined,
             transportCost: transportFee > 0 ? transportFee : undefined,
@@ -532,15 +549,15 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
             <div className="w-full max-w-7xl mx-auto py-12 px-4">
                  <header className="text-center mb-12 md:mb-16 widget-animate">
                     {userProfile.logoBase64 ? (
-                        <img src={userProfile.logoBase64} alt="Company Logo" className="h-20 mx-auto mb-4 object-contain" />
+                        <img src={userProfile.logoBase64} alt="Company Logo" className="h-16 md:h-20 mx-auto mb-4 object-contain" />
                     ) : (
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-gradient">{userProfile.companyName}</h1>
+                        <h1 className="text-3xl md:text-4xl lg:text-5xl font-extrabold text-gradient">{userProfile.companyName}</h1>
                     )}
                     {publicPageConfig?.title && (
-                        <h2 className="text-3xl md:text-4xl font-bold text-brand-text-light mt-4">{publicPageConfig.title}</h2>
+                        <h2 className="text-2xl md:text-3xl lg:text-4xl font-bold text-brand-text-light mt-4">{publicPageConfig.title}</h2>
                     )}
                     {publicPageConfig?.introduction && (
-                        <p className="text-lg text-brand-text-secondary mt-4 max-w-3xl mx-auto">{publicPageConfig.introduction}</p>
+                        <p className="text-base md:text-lg text-brand-text-secondary mt-4 max-w-3xl mx-auto">{publicPageConfig.introduction}</p>
                     )}
                 </header>
 
@@ -556,6 +573,7 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                                     <img
                                         src={imgSrc}
                                         alt={`Gallery image ${index + 1}`}
+                                        loading="lazy"
                                         className="w-full h-auto object-cover rounded-none shadow-none"
                                     />
                                 </div>
@@ -564,10 +582,10 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                     </section>
                 )}
 
-                <section className="mb-12 md:mb-16 grid md:grid-cols-1 lg:grid-cols-2 gap-8 widget-animate" style={{ animationDelay: '200ms' }}>
-                    <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border p-4 sm:p-6">
+                <section className="mb-12 md:mb-16 grid md:grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8 widget-animate" style={{ animationDelay: '200ms' }}>
+                    <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border p-3 md:p-4 sm:p-6">
                         <button onClick={() => setIsWorkflowOpen(!isWorkflowOpen)} className="w-full flex justify-between items-center text-left">
-                            <h3 className="text-2xl font-bold text-gradient">Wedding Workflow</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-gradient">Wedding Workflow</h3>
                             <ChevronDownIcon className={`w-6 h-6 transition-transform text-brand-text-secondary ${isWorkflowOpen ? 'rotate-180' : ''}`} />
                         </button>
                         <div className={`transition-all duration-500 ease-in-out grid ${isWorkflowOpen ? 'grid-rows-[1fr] mt-4 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -597,9 +615,9 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                             </div>
                         </div>
                     </div>
-                    <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border p-4 sm:p-6">
+                    <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border p-3 md:p-4 sm:p-6">
                         <button onClick={() => setIsTermsOpen(!isTermsOpen)} className="w-full flex justify-between items-center text-left">
-                            <h3 className="text-2xl font-bold text-gradient">Syarat & Ketentuan</h3>
+                            <h3 className="text-xl md:text-2xl font-bold text-gradient">Syarat & Ketentuan</h3>
                             <ChevronDownIcon className={`w-6 h-6 transition-transform text-brand-text-secondary ${isTermsOpen ? 'rotate-180' : ''}`} />
                         </button>
                         <div className={`transition-all duration-500 ease-in-out grid ${isTermsOpen ? 'grid-rows-[1fr] mt-4 opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
@@ -616,18 +634,18 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                     </div>
                 </section>
 
-                <div className="grid lg:grid-cols-3 gap-8 items-start">
-                    <section className="lg:col-span-2 space-y-16">
+                <div className="grid lg:grid-cols-3 gap-6 md:gap-8 items-start">
+                    <section className="lg:col-span-2 space-y-12 md:space-y-16">
                         {Object.entries(packagesByCategory as Record<string, Package[]>).map(([category, pkgs]) => (
                             <div key={category}>
-                                <div className="mb-8">
-                                    <h3 className="text-3xl font-bold text-brand-text-light">{category}</h3>
+                                <div className="mb-6 md:mb-8">
+                                    <h3 className="text-2xl md:text-3xl font-bold text-brand-text-light">{category}</h3>
                                     <div className="text-brand-text-secondary mt-2 max-w-2xl" 
                                          dangerouslySetInnerHTML={{ 
                                              __html: categoryDescriptions[category] || `Berbagai pilihan paket untuk kebutuhan ${category.toLowerCase()} Anda.`
                                          }} />
                                 </div>
-                                <div className="grid grid-cols-2 md:grid-cols-2 gap-4 md:gap-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-8">
                                     {pkgs.map((pkg, index) => (
                                         <div key={pkg.id} className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:shadow-2xl widget-animate" style={{ animationDelay: `${200 + index * 100}ms` }}>
                                              {pkg.id === mostPopularPackageId && (
@@ -637,7 +655,8 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                                                 <div className="w-full h-48 overflow-hidden">
                                                     <img 
                                                         src={pkg.coverImage} 
-                                                        alt={pkg.name} 
+                                                        alt={pkg.name}
+                                                        loading="lazy" 
                                                         className="w-full h-full object-cover hover:scale-105 transition-transform duration-300" 
                                                         onError={(e) => {
                                                             // If image fails to load, show the camera icon
@@ -664,10 +683,10 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                                                     </svg>
                                                 </div>
                                             )}
-                                            <div className="p-4 sm:p-6 flex flex-col flex-grow">
-                                                <h4 className="text-lg md:text-xl font-bold text-gradient">{pkg.name}</h4>
-                                                <p className="text-2xl md:text-3xl font-bold text-brand-text-light my-2 md:my-3">{formatCurrency(pkg.price)}</p>
-                                                <div className="space-y-1 text-sm text-brand-text-secondary flex-grow">
+                                            <div className="p-3 md:p-4 sm:p-6 flex flex-col flex-grow">
+                                                <h4 className="text-base md:text-lg lg:text-xl font-bold text-gradient">{pkg.name}</h4>
+                                                <p className="text-xl md:text-2xl lg:text-3xl font-bold text-brand-text-light my-2 md:my-3">{formatCurrency(pkg.price)}</p>
+                                                <div className="space-y-1 text-xs md:text-sm text-brand-text-secondary flex-grow">
                                                     {/* Team lines separated */}
                                                     {pkg.photographers && (
                                                         <p className="leading-snug">{pkg.photographers}</p>
@@ -696,7 +715,7 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                     {addOns.length > 0 && (
                         <aside className="lg:col-span-1 lg:sticky lg:top-8 widget-animate" style={{ animationDelay: '500ms' }}>
                             <div className="bg-brand-surface rounded-2xl shadow-lg border border-brand-border">
-                                <h3 className="text-xl font-bold text-brand-text-light p-6">Tambahan Opsional</h3>
+                                <h3 className="text-lg md:text-xl font-bold text-brand-text-light p-4 md:p-6">Tambahan Opsional</h3>
                                 <div className="border-t border-brand-border">
                                     {addOns.map(addOn => (
                                         <AddOnItem key={addOn.id} addOn={addOn} />
@@ -844,7 +863,34 @@ const PublicPackages: React.FC<PublicPackagesProps> = ({ userProfile: initialUse
                                 <div className="input-group"><input type="text" id="location" name="location" value={formData.location} onChange={handleFormChange} className="input-field" placeholder=" "/><label htmlFor="location" className="input-label">Alamat Acara</label></div>
                                 <h4 className="text-base font-semibold text-gradient border-b border-public-border pb-2 pt-4">Paket & Pembayaran</h4>
                                 <div className="p-4 bg-public-bg rounded-lg space-y-3">
-                                    <div className="flex justify-between items-center text-sm"><span className="text-public-text-secondary">Paket: {bookingModal.pkg?.name}</span><span className="text-public-text-primary font-semibold">{formatCurrency(bookingModal.pkg?.price || 0)}</span></div>
+                                    <div className="flex justify-between items-center text-sm">
+                                        <span className="text-public-text-secondary">Paket: {bookingModal.pkg?.name}</span>
+                                        <span className="text-public-text-primary font-semibold">
+                                            {(() => {
+                                                if (!bookingModal.pkg) return formatCurrency(0);
+                                                const opts = bookingModal.pkg.durationOptions;
+                                                if (!opts || opts.length === 0) return formatCurrency(bookingModal.pkg.price);
+                                                const selected = opts.find(o => o.label === formData.durationSelection) || opts.find(o => o.default) || opts[0];
+                                                return formatCurrency(selected?.price ?? bookingModal.pkg.price);
+                                            })()}
+                                        </span>
+                                    </div>
+                                    {bookingModal.pkg?.durationOptions && bookingModal.pkg.durationOptions.length > 0 && (
+                                        <div className="mt-2">
+                                            <label className="text-xs font-semibold text-public-accent">Jam Kerja</label>
+                                            <div className="mt-2 grid grid-cols-2 gap-2">
+                                                {bookingModal.pkg.durationOptions.map(opt => (
+                                                    <label key={opt.label} className="flex items-center justify-between p-2 rounded-md border border-public-border cursor-pointer hover:bg-public-surface">
+                                                        <span className="text-sm">{opt.label}</span>
+                                                        <div className="flex items-center gap-3">
+                                                            <span className="text-sm text-public-text-secondary">{formatCurrency(opt.price)}</span>
+                                                            <input type="radio" name="durationSelection" value={opt.label} checked={formData.durationSelection === opt.label} onChange={handleFormChange} />
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {formData.selectedAddOnIds.length > 0 && addOns.filter(a => formData.selectedAddOnIds.includes(a.id)).map(a => (
                                         <div key={a.id} className="flex justify-between items-center text-sm"><span className="text-public-text-secondary pl-4">Add-on: {a.name}</span><span className="text-public-text-primary font-semibold">{formatCurrency(a.price)}</span></div>
                                     ))}

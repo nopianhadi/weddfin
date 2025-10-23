@@ -80,7 +80,7 @@ const AIFinanceInsight: React.FC<AIFinanceInsightProps> = (props) => {
         const chatInstance = ai.chats.create({
             model: 'gemini-2.5-flash',
             config: {
-                systemInstruction: `Anda adalah 'Vena Finance AI', seorang analis keuangan ahli untuk bisnis fotografi Vena Pictures. Anda memiliki akses ke data keuangan internal perusahaan dalam format JSON. Tugas Anda adalah menjawab pertanyaan pengguna secara akurat dan ringkas berdasarkan data yang diberikan. Selalu berikan jawaban dalam Bahasa Indonesia. Jika data tidak cukup untuk menjawab, katakan demikian. Jangan mengarang informasi. Data Keuangan Internal: ${dataSummaryForPrompt}`
+            systemInstruction: `Anda adalah 'weddfin Finance AI', seorang analis keuangan ahli untuk bisnis fotografi weddfin. Anda memiliki akses ke data keuangan internal perusahaan dalam format JSON. Tugas Anda adalah menjawab pertanyaan pengguna secara akurat dan ringkas berdasarkan data yang diberikan. Selalu berikan jawaban dalam Bahasa Indonesia. Jika data tidak cukup untuk menjawab, katakan demikian. Jangan mengarang informasi. Data Keuangan Internal: ${dataSummaryForPrompt}`
             }
         });
         setChat(chatInstance);
@@ -157,7 +157,7 @@ const AIFinanceInsight: React.FC<AIFinanceInsightProps> = (props) => {
         return (
             <div className="flex flex-col items-center justify-center h-[70vh] text-center p-8">
                 <SparkleIcon className="w-16 h-16 text-brand-accent mb-4" />
-                <h2 className="text-2xl font-bold text-brand-text-light">Asisten AI Keuangan Vena</h2>
+                <h2 className="text-2xl font-bold text-brand-text-light">Asisten AI Keuangan weddfin</h2>
                 <p className="mt-2 text-brand-text-secondary max-w-md">Dapatkan wawasan mendalam, deteksi anomali, analisis arus kas, dan ajukan pertanyaan tentang data keuangan Anda.</p>
                 <button onClick={runFullAnalysis} className="mt-8 button-primary">
                     Mulai Analisis

@@ -11,7 +11,7 @@ interface SidebarProps {
   onLogout: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, setIsOpen, currentUser, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = React.memo(({ activeView, setActiveView, isOpen, setIsOpen, currentUser, onLogout }) => {
 
   const visibleNavItems = useMemo(() => {
     if (!currentUser) return [];
@@ -101,7 +101,7 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
               text-gradient
               select-none
             ">
-              Vena Pictures
+              weddfin
             </span>
           </div>
         </div>
@@ -311,6 +311,6 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, setActiveView, isOpen, se
       `}</style>
     </>
   );
-};
+});
 
 export default Sidebar;

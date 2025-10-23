@@ -70,6 +70,7 @@ export enum ViewType {
   SOCIAL_MEDIA_PLANNER = 'Perencana Media Sosial',
   MARKETING = 'Marketing',
   SOP = 'SOP',
+  GALLERY = 'Galeri Upload',
   SETTINGS = 'Pengaturan',
 }
 
@@ -92,6 +93,29 @@ export enum PaymentStatus {
   LUNAS = 'Lunas',
   DP_TERBAYAR = 'DP Terbayar',
   BELUM_BAYAR = 'Belum Bayar'
+}
+
+export interface GalleryImage {
+  id: string;
+  url: string;
+  thumbnailUrl?: string;
+  caption?: string;
+  uploadedAt: string;
+}
+
+export interface Gallery {
+  id: string;
+  user_id: string;
+  title: string;
+  region: string;
+  description?: string;
+  is_public: boolean;
+  public_id: string;
+  // Optional: custom booking link to be shown on the public gallery page
+  booking_link?: string;
+  images: GalleryImage[];
+  created_at: string;
+  updated_at?: string;
 }
 
 export enum ClientStatus {
@@ -130,12 +154,6 @@ export enum CardType {
   TUNAI = 'Tunai'
 }
 
-export enum AssetStatus {
-    AVAILABLE = 'Tersedia',
-    IN_USE = 'Digunakan',
-    MAINTENANCE = 'Perbaikan',
-}
-
 export enum PerformanceNoteType {
     PRAISE = 'Pujian',
     CONCERN = 'Perhatian',
@@ -152,7 +170,7 @@ export enum SatisfactionLevel {
 
 export enum RevisionStatus {
     PENDING = 'Menunggu Revisi',
-    IN_PROGRESS = 'Sedang Dikerjakan',
+    IN_PROGRESS = 'Sedang Direvisi',
     COMPLETED = 'Revisi Selesai',
 }
 
@@ -190,25 +208,15 @@ export interface PerformanceNote {
     type: PerformanceNoteType;
 }
 
-export interface Asset {
-    id: string;
-    name: string;
-    category: string;
-    purchaseDate: string; // ISO date string
-    purchasePrice: number;
-    serialNumber?: string;
-    status: AssetStatus;
-    notes?: string;
-}
-
 export interface User {
     id: string;
     email: string;
     password: string;
     fullName: string;
     companyName?: string;
-    role: 'Admin' | 'Member';
+    role: 'Admin' | 'Member' | 'Kasir';
     permissions?: ViewType[];
+    restrictedCards?: string[]; // IDs of cards that user cannot access
 }
 
 export interface Lead {
@@ -241,11 +249,20 @@ export interface PhysicalItem {
     price: number;
 }
 
+// Optional per-duration pricing for packages
+export interface DurationOption {
+    label: string; // e.g., '2 Jam', '4 Jam', '8 Jam', 'Full Day'
+    price: number;
+    default?: boolean; // optional flag for default selection/display
+}
+
 export interface Package {
   id: string;
   name: string;
   price: number;
   category: string;
+  // Optional: operational region for this package
+  region?: Region;
   physicalItems: PhysicalItem[];
   digitalItems: string[];
   processingTime: string;
@@ -254,12 +271,23 @@ export interface Package {
   photographers?: string;
   videographers?: string;
   coverImage?: string; // base64 image string
+  // Optional: flexible duration-based pricing options
+  durationOptions?: DurationOption[];
 }
+
+// Supported regions for packages and public booking links
+export type Region = string; // allow custom region values; REGIONS below are suggestions
+export const REGIONS: { value: Region; label: string }[] = [
+  { value: 'bandung', label: 'Bandung' },
+  { value: 'jabodetabek', label: 'Jabodetabek' },
+  { value: 'banten', label: 'Banten' },
+];
 
 export interface AddOn {
   id: string;
   name: string;
   price: number;
+  region?: Region; // optional region scoping for add-ons
 }
 
 export interface TeamMember {
@@ -294,6 +322,18 @@ export interface PrintingItem {
   paid?: boolean;
   // Optional granular payment flag used by UI; preferred over boolean 'paid'
   paymentStatus?: 'Paid' | 'Unpaid';
+}
+
+export interface TransportItem {
+  id: string;
+  description: string; // e.g., 'Transport ke Bandung', 'Parkir', 'Tol'
+  cost: number;
+  paymentStatus?: 'Paid' | 'Unpaid';
+  paymentType?: 'card' | 'pocket'; // Tipe pembayaran: kartu atau kantong
+  cardId?: string; // Kartu yang digunakan untuk pembayaran
+  pocketId?: string; // Kantong yang digunakan untuk pembayaran
+  paidAt?: string; // Tanggal pembayaran
+  notes?: string; // Catatan tambahan
 }
 
 export enum BookingStatus {
@@ -341,6 +381,9 @@ export interface Project {
   transportNote?: string;
   printingCardId?: string;
   transportCardId?: string;
+  // New: Detailed transport items tracking
+  transportDetails?: TransportItem[];
+  transportUsed?: boolean; // Apakah transport digunakan atau tidak
   // Additional operational costs captured per project (JSONB in DB)
   customCosts?: CustomCost[];
   isEditingConfirmedByClient?: boolean;
@@ -355,6 +398,9 @@ export interface Project {
   bookingStatus?: BookingStatus;
   rejectionReason?: string;
   chatHistory?: ChatMessage[];
+  // Explicit duration selection and per-unit price persisted at project level
+  durationSelection?: string; // e.g., '4 Jam' - label from Package.durationOptions
+  unitPrice?: number; // unit price used for package at time of booking
 }
 
 // Custom operational cost item
@@ -478,6 +524,7 @@ export interface Profile {
     phone: string;
     companyName: string;
     website: string;
+    instagram?: string;
     address: string;
     bankAccount: string;
     authorizedSigner: string;
@@ -576,11 +623,9 @@ export interface VendorData {
   leads: Lead[];
   rewardLedgerEntries: RewardLedgerEntry[];
   cards: Card[];
-  assets: Asset[];
   contracts: Contract[];
   clientFeedback: ClientFeedback[];
   notifications: Notification[];
-  socialMediaPosts: SocialMediaPost[];
   promoCodes: PromoCode[];
   sops: SOP[];
   packages: Package[];

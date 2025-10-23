@@ -3,12 +3,12 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover" />
     <meta name="theme-color" content="#f1f5f9">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="Vena Pictures">
-    <title>Vena Pictures</title>
+  <meta name="apple-mobile-web-app-title" content="weddfin">
+  <title>weddfin</title>
     <!-- Tailwind CSS loaded via build process -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -257,15 +257,16 @@
       
       /* Enhanced Checkbox & Radio */
       input[type="checkbox"], input[type="radio"] {
-        width: 20px;
-        height: 20px;
-        min-width: 20px;
-        min-height: 20px;
-        border-radius: 6px;
+        width: 14px;
+        height: 14px;
+        min-width: 14px;
+        min-height: 14px;
+        border-radius: 3px;
         color: var(--color-accent);
-        border: 2px solid var(--color-text-secondary);
+        border: 1.5px solid var(--color-text-secondary);
         background-color: transparent;
         transition: all 0.2s ease;
+        flex-shrink: 0;
       }
       
       input[type="radio"] {
@@ -276,6 +277,30 @@
         border-color: var(--color-accent);
         background-color: var(--color-accent);
         background-image: url("data:image/svg+xml,%3csvg viewBox='0 0 16 16' fill='white' xmlns='http://www.w3.org/2000/svg'%3e%3cpath d='M12.207 4.793a1 1 0 010 1.414l-5 5a1 1 0 01-1.414 0l-2-2a1 1 0 011.414-1.414L6.5 9.086l4.293-4.293a1 1 0 011.414 0z'/%3e%3c/svg%3e");
+      }
+      
+      /* Mobile optimization for checkbox */
+      @media (max-width: 768px) {
+        input[type="checkbox"], input[type="radio"] {
+          width: 11px;
+          height: 11px;
+          min-width: 11px;
+          min-height: 11px;
+          border-radius: 2px;
+          border-width: 1px;
+        }
+      }
+      
+      /* Extra small mobile */
+      @media (max-width: 480px) {
+        input[type="checkbox"], input[type="radio"] {
+          width: 10px;
+          height: 10px;
+          min-width: 10px;
+          min-height: 10px;
+          border-radius: 2px;
+          border-width: 1px;
+        }
       }
 
       /* Enhanced Date Input */
@@ -680,15 +705,63 @@
             left: 0;
         }
         
-        /* Calendar Responsiveness */
+        /* Calendar Responsiveness - Google Calendar Style */
         .calendar-grid-container {
-          overflow-x: auto;
+          overflow-y: auto;
           -webkit-overflow-scrolling: touch;
         }
-        /* removed empty .calendar-grid ruleset to avoid lint warning */
-        .calendar-grid > div {
-          min-height: 80px;
-          padding: 0.25rem;
+        
+        .calendar-grid {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+        }
+        
+        /* Mobile calendar optimizations */
+        @media (max-width: 640px) {
+          .calendar-grid-container {
+            overflow-x: hidden;
+          }
+          
+          .calendar-grid > div {
+            min-height: 60px;
+            font-size: 11px;
+          }
+          
+          /* Ensure calendar fits mobile screen */
+          .calendar-grid {
+            width: 100%;
+          }
+          
+          /* Week and Day view mobile optimizations */
+          .calendar-grid-container {
+            touch-action: pan-y pinch-zoom;
+          }
+          
+          /* Smooth scrolling for time grids */
+          .overflow-y-auto {
+            scroll-behavior: smooth;
+          }
+        }
+        
+        /* Tablet and desktop */
+        @media (min-width: 641px) {
+          .calendar-grid > div {
+            min-height: 80px;
+          }
+        }
+        
+        @media (min-width: 1024px) {
+          .calendar-grid > div {
+            min-height: 100px;
+          }
+        }
+        
+        /* Touch-friendly event cards */
+        @media (hover: none) and (pointer: coarse) {
+          /* Mobile/touch devices */
+          .calendar-grid-container {
+            -webkit-tap-highlight-color: transparent;
+          }
         }
         
         /* Enhanced touch targets */

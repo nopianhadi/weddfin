@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDashboardData, useEssentialData } from '../hooks/useDataManager';
 import { usePaginatedData } from '../hooks/usePaginatedData';
-import { LoadMoreButton } from '../components/LoadMoreButton';
+import { LoadMoreButton } from './components/LoadMoreButton';
 
 // Simple placeholder components for examples
 const Dashboard = ({ stats }: { stats: any }) => <div>Dashboard with {stats?.totalProjects} projects</div>;

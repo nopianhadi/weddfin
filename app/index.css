@@ -241,6 +241,47 @@ nav,
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Hide scrollbar while maintaining scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Chrome, Safari and Opera */
+}
+
+/* Mobile Tab Pills Enhancement */
+@media (max-width: 768px) {
+  /* Smooth scroll for horizontal tab navigation */
+  .scrollbar-hide {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  /* Enhanced touch feedback for mobile tabs */
+  .mobile-tab-pill {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  
+  /* Smooth transitions for tab content */
+  .tab-content-mobile {
+    animation: fadeInUp 0.3s ease-out;
+  }
+  
+  @keyframes fadeInUp {
+    from {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
 /* Enhanced focus states for accessibility */
 button:focus-visible,
 input:focus-visible,
@@ -4766,12 +4807,12 @@ Portal-specific print styles */
 
 /* Button styles for secondary actions */
 .button-secondary {
-  background-color: hsl(var(--brand-surface));
-  color: hsl(var(--brand-text-primary));
+  background-color: #2563eb;
+  color: #ffffff;
   font-weight: 600;
   padding: 0.5rem 1rem;
   border-radius: 0.5rem;
-  border: 1px solid hsl(var(--brand-border));
+  border: 1px solid #1d4ed8;
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
   transition: all 0.2s ease-in-out;
   cursor: pointer;
@@ -4785,25 +4826,27 @@ Portal-specific print styles */
 }
 
 .button-secondary:hover {
-  background-color: hsl(var(--brand-input));
+  background-color: #1d4ed8;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px 0 rgba(37, 99, 235, 0.3);
 }
 
 .button-secondary:active {
   transform: translateY(0);
   box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  background-color: #1e40af;
 }
 
 .button-secondary:focus {
   outline: none;
-  box-shadow: 0 0 0 3px rgba(var(--brand-accent-rgb, 59, 130, 246), 0.5);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.5);
 }
 
 .button-secondary:disabled {
-  background-color: #f3f4f6;
-  color: #9ca3af;
+  background-color: #93c5fd;
+  color: #ffffff;
   cursor: not-allowed;
+  opacity: 0.6;
 }
 
 /* Mobile small phones: shrink input/select text size on non-iOS devices to avoid iOS zoom */

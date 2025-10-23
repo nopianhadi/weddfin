@@ -1,10 +1,55 @@
 import supabase from '../lib/supabaseClient';
 import { Transaction, TransactionType } from '../types';
+import { validateCardBalance } from './balanceValidator';
 
 const TRANSACTIONS = 'transactions';
 const CARDS = 'cards';
 
 export async function createTransaction(row: Omit<Transaction, 'id' | 'vendorSignature'>): Promise<Transaction> {
+  // Validate balance before transaction if card_id is provided
+  if (row.cardId && row.type === TransactionType.EXPENSE) {
+    // Fetch current card balance
+    const { data: card, error: cardError } = await supabase
+      .from(CARDS)
+      .select('balance')
+      .eq('id', row.cardId)
+      .single();
+    
+    if (cardError) throw cardError;
+    if (!card) throw new Error('Card not found');
+    
+    // Validate balance
+    validateCardBalance(card as any, row.amount, row.type);
+  }
+  
+  // Use atomic RPC function if card_id is provided
+  if (row.cardId) {
+    const amountDelta = row.type === TransactionType.INCOME ? row.amount : -row.amount;
+    
+    const transactionData = {
+      date: row.date,
+      description: row.description,
+      amount: row.amount,
+      type: row.type,
+      project_id: row.projectId ?? null,
+      category: row.category,
+      method: row.method,
+      pocket_id: row.pocketId ?? null,
+      printing_item_id: row.printingItemId ?? null,
+      vendor_signature: null,
+    };
+    
+    const { data, error } = await supabase.rpc('create_transaction_with_balance_update', {
+      p_transaction_data: transactionData,
+      p_card_id: row.cardId,
+      p_amount_delta: amountDelta,
+    });
+    
+    if (error) throw error;
+    return normalizeTransaction(data);
+  }
+  
+  // Fallback for transactions without card_id
   const payload = {
     date: row.date,
     description: row.description,

@@ -80,31 +80,69 @@ const PublicFeedbackForm: React.FC<PublicFeedbackFormProps> = ({ setClientFeedba
                         <p className="text-sm text-brand-text-secondary mt-2">Kami sangat menghargai waktu Anda untuk memBerikan Testimoni.</p>
                     </div>
 
-                    <form className="space-y-4 form-compact form-compact--ios-scale" onSubmit={handleSubmit}>
-                        <div className="input-group">
-                           <input type="text" id="clientName" name="clientName" value={formState.clientName} onChange={handleFormChange} className="input-field" placeholder=" " required/>
-                           <label htmlFor="clientName" className="input-label">Nama Anda</label>
-                       </div>
+                    <form className="space-y-5" onSubmit={handleSubmit}>
+                        <div className="space-y-2">
+                            <label htmlFor="clientName" className="block text-xs text-brand-text-secondary">Nama Anda</label>
+                            <input 
+                                type="text" 
+                                id="clientName" 
+                                name="clientName" 
+                                value={formState.clientName} 
+                                onChange={handleFormChange} 
+                                className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all" 
+                                placeholder="Masukkan nama Anda" 
+                                required
+                            />
+                            <p className="text-xs text-brand-text-secondary">Nama Anda untuk testimoni</p>
+                        </div>
 
-                        <div className="pt-2">
-                            <label className="text-sm text-brand-text-secondary">Peringkat Kepuasan Anda</label>
-                            <div className="flex items-center justify-center gap-4 mt-3">
+                        <div className="space-y-2">
+                            <label className="block text-xs font-semibold text-blue-600">Peringkat Kepuasan Anda</label>
+                            <p className="text-xs text-brand-text-secondary mb-2">Berikan rating bintang untuk layanan kami</p>
+                            <div className="flex items-center justify-center gap-3 p-4 bg-blue-50/5 border-2 border-blue-200 rounded-xl">
                                 {[1, 2, 3, 4, 5].map(star => (
-                                    <button key={star} type="button" onClick={() => handleRatingChange(star)} className={`p-2 rounded-full transition-colors ${formState.rating >= star ? 'bg-yellow-400/20' : 'bg-brand-input hover:bg-brand-input/70'}`}>
-                                        <StarIcon className={`w-8 h-8 ${formState.rating >= star ? 'text-yellow-400 fill-current' : 'text-gray-500'}`} />
+                                    <button 
+                                        key={star} 
+                                        type="button" 
+                                        onClick={() => handleRatingChange(star)} 
+                                        className={`p-2 rounded-full transition-all ${
+                                            formState.rating >= star 
+                                            ? 'bg-yellow-400/30 scale-110' 
+                                            : 'bg-brand-input hover:bg-yellow-400/10 hover:scale-105'
+                                        }`}
+                                    >
+                                        <StarIcon className={`w-8 h-8 transition-all ${
+                                            formState.rating >= star 
+                                            ? 'text-yellow-400 fill-current drop-shadow-lg' 
+                                            : 'text-gray-400'
+                                        }`} />
                                     </button>
                                 ))}
                             </div>
                         </div>
                         
-                        <div className="input-group">
-                            <textarea id="feedback" name="feedback" value={formState.feedback} onChange={handleFormChange} className="input-field" placeholder=" " required rows={5}></textarea>
-                            <label htmlFor="feedback" className="input-label">Saran & Masukan Anda</label>
+                        <div className="space-y-2">
+                            <label htmlFor="feedback" className="block text-xs text-brand-text-secondary">Saran & Masukan Anda</label>
+                            <textarea 
+                                id="feedback" 
+                                name="feedback" 
+                                value={formState.feedback} 
+                                onChange={handleFormChange} 
+                                className="w-full px-4 py-3 rounded-xl border border-brand-border bg-white/5 text-brand-text-primary focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none" 
+                                placeholder="Bagikan pengalaman Anda dengan layanan kami..." 
+                                required 
+                                rows={5}
+                            ></textarea>
+                            <p className="text-xs text-brand-text-secondary">Ceritakan pengalaman Anda menggunakan layanan kami</p>
                         </div>
                         
                         <div className="pt-6">
-                            <button type="submit" disabled={isSubmitting} className="w-full button-primary">
-                                {isSubmitting ? 'Mengirim...' : 'Kirim Masukan'}
+                            <button 
+                                type="submit" 
+                                disabled={isSubmitting} 
+                                className="w-full px-6 py-4 rounded-xl bg-blue-600 text-white font-semibold hover:bg-blue-700 active:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg hover:shadow-xl"
+                            >
+                                {isSubmitting ? 'Mengirim...' : 'Kirim Testimoni'}
                             </button>
                         </div>
                     </form>

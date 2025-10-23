@@ -13,7 +13,7 @@ const XIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
 );
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer, size = '2xl' }) => {
+const Modal: React.FC<ModalProps> = React.memo(({ isOpen, onClose, title, children, footer, size = '2xl' }) => {
   
   // Enhanced keyboard and body scroll handling
   useEffect(() => {
@@ -191,12 +191,27 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
           /* Account for bottom navigation bar on mobile */
           .app-modal-overlay {
             /* Ensure modal doesn't get covered by bottom nav */
-            padding-bottom: calc(5rem + var(--safe-area-inset-bottom, 0px)) !important;
+            padding-bottom: calc(6rem + var(--safe-area-inset-bottom, 0px)) !important;
+            align-items: flex-start !important;
+            padding-top: 2rem !important;
           }
 
           .app-modal-dialog {
-            /* Adjust max height to account for bottom nav */
-            max-height: calc(100vh - 8rem - var(--safe-area-inset-bottom, 0px)) !important;
+            /* Adjust max height to account for bottom nav and ensure scrollability */
+            max-height: calc(100vh - 10rem - var(--safe-area-inset-bottom, 0px)) !important;
+            margin-top: 0 !important;
+            margin-bottom: auto !important;
+          }
+        }
+        
+        /* Extra small screens */
+        @media (max-width: 380px) {
+          .app-modal-overlay {
+            padding-bottom: calc(7rem + var(--safe-area-inset-bottom, 0px)) !important;
+          }
+          
+          .app-modal-dialog {
+            max-height: calc(100vh - 11rem - var(--safe-area-inset-bottom, 0px)) !important;
           }
         }
         
@@ -227,6 +242,6 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children, footer,
       `}</style>
     </div>
   );
-};
+});
 
 export default Modal;

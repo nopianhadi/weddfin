@@ -32,6 +32,9 @@ export type CreateProjectInput = {
   completedDigitalItems?: string[];
   dpProofUrl?: string;
   addOns: { id: string; name: string; price: number }[];
+  // Optional explicit duration selection and unit price (persisted on project)
+  durationSelection?: string;
+  unitPrice?: number;
 };
 
 function normalizeProject(row: any): Project {
@@ -238,7 +241,17 @@ export async function updateProject(projectId: string, input: UpdateProjectInput
     ...(input as any).isEditingConfirmedByClient !== undefined ? { is_editing_confirmed_by_client: (input as any).isEditingConfirmedByClient } : {},
     ...(input as any).isPrintingConfirmedByClient !== undefined ? { is_printing_confirmed_by_client: (input as any).isPrintingConfirmedByClient } : {},
     ...(input as any).isDeliveryConfirmedByClient !== undefined ? { is_delivery_confirmed_by_client: (input as any).isDeliveryConfirmedByClient } : {},
+  ...(input as any).durationSelection !== undefined && (input as any).durationSelection !== '' ? { duration_selection: (input as any).durationSelection } : {},
+  ...(input as any).unitPrice !== undefined && (input as any).unitPrice !== null && !Number.isNaN(Number((input as any).unitPrice)) ? { unit_price: (input as any).unitPrice } : {},
   };
+
+  // map duration/unit price if provided
+  if ((input as any).durationSelection !== undefined && (input as any).durationSelection !== '') {
+    payload.duration_selection = (input as any).durationSelection;
+  }
+  if ((input as any).unitPrice !== undefined && (input as any).unitPrice !== null && !Number.isNaN(Number((input as any).unitPrice))) {
+    payload.unit_price = (input as any).unitPrice;
+  }
 
   if (Object.keys(payload).length > 0) {
     const { error: updErr } = await supabase.from(PROJECTS).update(payload).eq('id', projectId);
@@ -298,48 +311,53 @@ export async function createProject(input: CreateProjectInput): Promise<Project>
     packageId = pkg?.id ?? null;
   }
 
+  // Build insert row and only include optional columns when provided to avoid PostgREST errors
+  const insertRow: any = {
+    project_name: input.projectName,
+    client_name: input.clientName,
+    client_id: input.clientId,
+    project_type: input.projectType,
+    package_name: input.packageName,
+    package_id: packageId,
+    date: input.date,
+    deadline_date: (input as any).deadlineDate ?? null,
+    location: input.location,
+    progress: (input as any).progress ?? 0,
+    status: input.status,
+    total_cost: input.totalCost,
+    amount_paid: input.amountPaid,
+    payment_status: input.paymentStatus,
+    booking_status: input.bookingStatus ?? null,
+    notes: input.notes ?? null,
+    accommodation: input.accommodation ?? null,
+    drive_link: input.driveLink ?? null,
+    client_drive_link: (input as any).clientDriveLink ?? null,
+    final_drive_link: (input as any).finalDriveLink ?? null,
+    start_time: (input as any).startTime ?? null,
+    end_time: (input as any).endTime ?? null,
+    promo_code_id: promoCodeId,
+    discount_amount: input.discountAmount ?? null,
+    printing_details: (input as any).printingDetails ?? null,
+    custom_costs: (input as any).customCosts ?? null,
+    printing_cost: input.printingCost ?? null,
+    transport_cost: input.transportCost ?? null,
+    transport_paid: (input as any).transportPaid ?? false,
+    transport_note: (input as any).transportNote ?? null,
+    printing_card_id: (input as any).printingCardId ?? null,
+    transport_card_id: (input as any).transportCardId ?? null,
+    dp_proof_url: input.dpProofUrl ?? null,
+    completed_digital_items: input.completedDigitalItems ?? [],
+    shipping_details: (input as any).shippingDetails ?? null,
+  } as any;
+
+  // Only add duration/unit price if explicitly provided by the caller
+  if ((input as any).durationSelection !== undefined && (input as any).durationSelection !== '') insertRow.duration_selection = (input as any).durationSelection;
+  if ((input as any).unitPrice !== undefined && (input as any).unitPrice !== null && !Number.isNaN(Number((input as any).unitPrice))) insertRow.unit_price = (input as any).unitPrice;
+
   // Insert project
   const { data: inserted, error } = await supabase
     .from(PROJECTS)
-    .insert([
-      {
-        project_name: input.projectName,
-        client_name: input.clientName,
-        client_id: input.clientId,
-        project_type: input.projectType,
-        package_name: input.packageName,
-        package_id: packageId,
-        date: input.date,
-        deadline_date: (input as any).deadlineDate ?? null,
-        location: input.location,
-        progress: (input as any).progress ?? 0,
-        status: input.status,
-        total_cost: input.totalCost,
-        amount_paid: input.amountPaid,
-        payment_status: input.paymentStatus,
-        booking_status: input.bookingStatus ?? null,
-        notes: input.notes ?? null,
-        accommodation: input.accommodation ?? null,
-        drive_link: input.driveLink ?? null,
-        client_drive_link: (input as any).clientDriveLink ?? null,
-        final_drive_link: (input as any).finalDriveLink ?? null,
-        start_time: (input as any).startTime ?? null,
-        end_time: (input as any).endTime ?? null,
-        promo_code_id: promoCodeId,
-        discount_amount: input.discountAmount ?? null,
-        printing_details: (input as any).printingDetails ?? null,
-        custom_costs: (input as any).customCosts ?? null,
-        printing_cost: input.printingCost ?? null,
-        transport_cost: input.transportCost ?? null,
-        transport_paid: (input as any).transportPaid ?? false,
-        transport_note: (input as any).transportNote ?? null,
-        printing_card_id: (input as any).printingCardId ?? null,
-        transport_card_id: (input as any).transportCardId ?? null,
-        dp_proof_url: input.dpProofUrl ?? null,
-        completed_digital_items: input.completedDigitalItems ?? [],
-        shipping_details: (input as any).shippingDetails ?? null
-      },
-    ])
+    .insert([insertRow])
     .select('*')
     .single();
   if (error) throw error;
